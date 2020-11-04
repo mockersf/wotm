@@ -1,0 +1,94 @@
+name: release-flow
+
+# https://help.github.com/en/articles/events-that-trigger-workflows#release-event-release
+# on: release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+*"
+
+jobs:
+  build-macOS:
+    runs-on: macOS-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Build and release
+        run: |
+          export CFLAGS="-fno-stack-check"
+          export MACOSX_DEPLOYMENT_TARGET="10.9"
+          cargo build --release
+          mkdir -p kmanb.app/Contents/MacOS
+          cp target/release/kmanb kmanb.app/Contents/MacOS/
+          strip kmanb.app/Contents/MacOS/kmanb
+          hdiutil create -fs HFS+ -volname "kmanb" -srcfolder kmanb.app kmanb.dmg
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: kmanb.dmg
+          asset_name: kmanb-macOS.dmg
+          tag: ${{ github.ref }}
+          overwrite: true
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install Dependencies
+        run: sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
+      - name: Build and release
+        run: |
+          cargo build --release
+          strip target/release/kmanb
+      - uses: papeloto/action-zip@v1
+        with:
+          files: target/release/kmanb
+          dest: kmanb-linux.zip
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: kmanb-linux.zip
+          asset_name: kmanb-linux.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: seanmiddleditch/gha-setup-ninja@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - name: Build and release
+        run: |
+          cargo build --release
+      - uses: papeloto/action-zip@v1
+        with:
+          files: target/release/kmanb.exe
+          dest: kmanb-windows.zip
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: kmanb-windows.zip
+          asset_name: kmanb-windows.zip
+          tag: ${{ github.ref }}
+          overwrite: true

@@ -1,0 +1,186 @@
+use bevy::prelude::*;
+use tracing::info;
+
+const CURRENT_SCREEN: crate::Screen = crate::Screen::Lost;
+
+struct ScreenTag;
+
+struct Screen {
+    loaded: bool,
+}
+impl Default for Screen {
+    fn default() -> Self {
+        Screen { loaded: false }
+    }
+}
+
+#[derive(Default)]
+pub struct GameStats {}
+
+pub struct Plugin;
+impl bevy::app::Plugin for Plugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_resource(Screen::default())
+            .init_resource::<GameStats>()
+            .add_system(input_system.system())
+            .add_system(setup.system())
+            .add_system(update_stats.system())
+            .add_system(hurt_animate_sprite_system.system())
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
+    }
+}
+
+fn update_stats(
+    mut _stats: ResMut<GameStats>,
+    _game: Res<crate::game::Game>,
+    (mut interesting_event_reader, interesting_events): (
+        Local<EventReader<crate::game::InterestingEvent>>,
+        ResMut<Events<crate::game::InterestingEvent>>,
+    ),
+) {
+    for event in interesting_event_reader.iter(&interesting_events) {
+        match event {
+            _ => (),
+        }
+    }
+}
+
+fn setup(
+    mut commands: Commands,
+    mut game_screen: ResMut<crate::GameScreen>,
+    mut screen: ResMut<Screen>,
+    mut game: ResMut<crate::game::Game>,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut asset_handles: ResMut<crate::AssetHandles>,
+) {
+    if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
+        info!("Loading screen");
+
+        let font: Handle<Font> = asset_handles.get_font_main_handle(&asset_server);
+
+        let font_sub: Handle<Font> = asset_handles.get_font_sub_handle(&asset_server);
+
+        commands
+            .spawn(NodeComponents {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: Rect::<Val> {
+                        left: Val::Percent(50.),
+                        right: Val::Undefined,
+                        top: Val::Percent(25.),
+                        bottom: Val::Undefined,
+                    },
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    flex_direction: FlexDirection::ColumnReverse,
+                    ..Default::default()
+                },
+                material: materials.add(Color::NONE.into()),
+                ..Default::default()
+            })
+            .with(ScreenTag)
+            .with_children(|parent| {
+                parent.spawn(TextComponents {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(75.),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: "You lost".to_string(),
+                        font,
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT,
+                            font_size: 75.,
+                        },
+                    },
+                    ..Default::default()
+                });
+                parent.spawn(TextComponents {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(100.),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: format!("{} points", game.score),
+                        font: font_sub.clone(),
+                        style: TextStyle {
+                            color: if game_screen.is_new_highscore(game.score) {
+                                crate::ui::ColorScheme::TEXT_HIGHLIGHT
+                            } else {
+                                crate::ui::ColorScheme::TEXT
+                            },
+                            font_size: 100.0,
+                        },
+                    },
+                    ..Default::default()
+                });
+            });
+
+        if game.score > game_screen.highscore {
+            game_screen.highscore = game.score;
+        }
+        if game.round > game_screen.highround {
+            game_screen.highround = game.round;
+        }
+        *game = crate::game::Game::default();
+
+        screen.loaded = true;
+    }
+}
+
+fn tear_down(
+    mut commands: Commands,
+    game_screen: Res<crate::GameScreen>,
+    mut screen: ResMut<Screen>,
+    query: Query<With<ScreenTag, Entity>>,
+) {
+    if game_screen.current_screen != CURRENT_SCREEN && screen.loaded {
+        info!("tear down");
+
+        for entity in query.iter() {
+            commands.despawn_recursive(entity);
+        }
+
+        screen.loaded = false;
+    }
+}
+
+fn input_system(
+    mut game_screen: ResMut<crate::GameScreen>,
+    screen: Res<Screen>,
+    mouse_button_input: Res<Input<MouseButton>>,
+    keyboard_input: Res<Input<KeyCode>>,
+) {
+    if game_screen.current_screen == CURRENT_SCREEN
+        && screen.loaded
+        && (mouse_button_input.just_pressed(MouseButton::Left)
+            || keyboard_input.just_released(KeyCode::Escape)
+            || keyboard_input.just_released(KeyCode::Space))
+    {
+        game_screen.current_screen = crate::Screen::Menu;
+    }
+}
+
+fn hurt_animate_sprite_system(
+    game_screen: Res<crate::GameScreen>,
+    mut query: Query<(&mut Timer, &mut TextureAtlasSprite)>,
+) {
+    if game_screen.current_screen == CURRENT_SCREEN {
+        for (timer, mut sprite) in query.iter_mut() {
+            if timer.finished {
+                if sprite.index == 0 {
+                    sprite.index = 4;
+                } else {
+                    sprite.index = 0
+                }
+            }
+        }
+    }
+}
