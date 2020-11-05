@@ -1,3 +1,6 @@
+// disable console opening on windows
+#![windows_subsystem = "windows"]
+
 use bevy::{app::AppExit, prelude::*, window::WindowMode};
 use bevy_rapier2d::physics::RapierPhysicsPlugin;
 use serde::{Deserialize, Serialize};
