@@ -21,7 +21,7 @@ impl RotationDirection {
 #[derive(Clone, Copy)]
 pub enum Rotation {
     Free,
-    Fixed(f32),
+    Fixed,
 }
 
 #[derive(Clone, Copy)]
@@ -46,8 +46,8 @@ impl Orbiter {
         }
     }
 
-    pub fn self_rotate(mut self, speed: f32) -> Self {
-        self.rotation = Rotation::Fixed(speed);
+    pub fn self_rotate(mut self) -> Self {
+        self.rotation = Rotation::Fixed;
 
         self
     }
@@ -168,16 +168,12 @@ fn orbite_around(
             target_position(time.seconds_since_startup as f32, orbiter),
         );
         body.linvel = linvel * orbiter.speed * orbiter.distance;
-        body.angvel = 0.;
         match orbiter.rotation {
             Rotation::Free => {
+                body.angvel = 0.;
                 body.position.rotation = bevy_rapier2d::na::UnitComplex::from_angle(rot);
             }
-            Rotation::Fixed(speed) => {
-                body.position.rotation = bevy_rapier2d::na::UnitComplex::from_angle(
-                    speed * time.seconds_since_startup as f32,
-                );
-            }
+            Rotation::Fixed => (),
         }
     }
 }

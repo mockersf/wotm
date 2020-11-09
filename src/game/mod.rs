@@ -60,7 +60,10 @@ fn setup(
                 material: planet.clone(),
                 ..Default::default()
             })
-            .with(bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().angvel(0.1))
+            .with(
+                bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                    .angvel(rand::thread_rng().gen_range(-1., 1.) * 0.2),
+            )
             .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
@@ -68,7 +71,7 @@ fn setup(
         let nb_moon = rand::thread_rng().gen_range(1, 4);
 
         for i in 0..nb_moon {
-            let self_rotation = rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_3;
+            let self_rotation = rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_4;
             let orbiter = crate::space::Orbiter::every(
                 rand::thread_rng().gen_range(0.01, 0.05),
                 planet,
@@ -79,7 +82,7 @@ fn setup(
                 },
                 (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(-20., 20.),
             )
-            .self_rotate(self_rotation);
+            .self_rotate();
             let start_position =
                 crate::space::target_position(time.seconds_since_startup as f32, &orbiter);
 
@@ -100,7 +103,7 @@ fn setup(
                 .with(orbiter)
                 .with(
                     bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
-                        .angvel(0.1)
+                        .angvel(self_rotation)
                         .position(bevy_rapier2d::na::Isometry2::translation(
                             start_position.x,
                             start_position.y,
