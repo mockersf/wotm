@@ -16,6 +16,10 @@ mod menu;
 mod space;
 mod splash;
 
+pub const Z_PLANET: f32 = 0.0;
+pub const Z_MOON: f32 = 1.0;
+pub const Z_SHIP: f32 = 2.0;
+
 #[derive(Serialize, Deserialize, Debug)]
 struct Settings {
     width: u32,

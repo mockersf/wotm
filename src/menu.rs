@@ -109,7 +109,7 @@ fn setup(
         commands
             .spawn((
                 Transform {
-                    translation: Vec3::new(-200., -75., 0.),
+                    translation: Vec3::new(-200., -75., crate::Z_MOON),
                     ..Default::default()
                 },
                 GlobalTransform::default(),

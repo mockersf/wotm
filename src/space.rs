@@ -86,10 +86,13 @@ fn spawn_ship(
                 spawn.scale * 50.,
             );
 
+            let mut translation = global_transform.translation.clone();
+            translation.set_z(crate::Z_SHIP);
+
             commands
                 .spawn(SpriteComponents {
                     transform: Transform {
-                        translation: global_transform.translation,
+                        translation,
                         scale: Vec3::splat(spawn.scale * 0.05),
                         ..Default::default()
                     },

@@ -53,6 +53,7 @@ fn setup(
             .spawn(SpriteComponents {
                 transform: Transform {
                     scale: Vec3::splat(0.10),
+                    translation: Vec3::new(0., 0., crate::Z_PLANET),
                     ..Default::default()
                 },
                 material: planet.clone(),
@@ -63,74 +64,34 @@ fn setup(
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
-        commands
-            .spawn(SpriteComponents {
-                transform: Transform {
-                    scale: Vec3::splat(0.10),
-                    ..Default::default()
-                },
-                material: game_handles
-                    .orbiters
-                    .choose(&mut rand::thread_rng())
-                    .unwrap()
-                    .clone_weak(),
-                ..Default::default()
-            })
-            .with(crate::space::Orbiter::every(
-                rand::thread_rng().gen_range(0.01, 0.05),
-                planet,
-                300.,
-            ))
-            .with(bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().angvel(0.1))
-            .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
-            .with(crate::space::SpawnShip::every(5.))
-            .with(ScreenTag);
+        let nb_moon = rand::thread_rng().gen_range(1, 4);
 
-        commands
-            .spawn(SpriteComponents {
-                transform: Transform {
-                    scale: Vec3::splat(0.10),
+        for i in 0..nb_moon {
+            commands
+                .spawn(SpriteComponents {
+                    transform: Transform {
+                        scale: Vec3::splat(0.10),
+                        translation: Vec3::new(0., 0., crate::Z_MOON),
+                        ..Default::default()
+                    },
+                    material: game_handles
+                        .orbiters
+                        .choose(&mut rand::thread_rng())
+                        .unwrap()
+                        .clone_weak(),
                     ..Default::default()
-                },
-                material: game_handles
-                    .orbiters
-                    .choose(&mut rand::thread_rng())
-                    .unwrap()
-                    .clone_weak(),
-                ..Default::default()
-            })
-            .with(crate::space::Orbiter::every(
-                rand::thread_rng().gen_range(0.01, 0.05),
-                planet,
-                200.,
-            ))
-            .with(bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().angvel(0.1))
-            .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
-            .with(crate::space::SpawnShip::every(5.))
-            .with(ScreenTag);
-
-        commands
-            .spawn(SpriteComponents {
-                transform: Transform {
-                    scale: Vec3::splat(0.10),
-                    ..Default::default()
-                },
-                material: game_handles
-                    .orbiters
-                    .choose(&mut rand::thread_rng())
-                    .unwrap()
-                    .clone_weak(),
-                ..Default::default()
-            })
-            .with(crate::space::Orbiter::every(
-                rand::thread_rng().gen_range(0.01, 0.05),
-                planet,
-                100.,
-            ))
-            .with(bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().angvel(0.1))
-            .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
-            .with(crate::space::SpawnShip::every(5.))
-            .with(ScreenTag);
+                })
+                .with(crate::space::Orbiter::every(
+                    rand::thread_rng().gen_range(0.01, 0.05),
+                    planet,
+                    (i as f32 + 1.) * (300. / nb_moon as f32)
+                        + rand::thread_rng().gen_range(-20., 20.),
+                ))
+                .with(bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().angvel(0.1))
+                .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
+                .with(crate::space::SpawnShip::every(5.))
+                .with(ScreenTag);
+        }
 
         screen.loaded = true;
         screen.first_load = false;
