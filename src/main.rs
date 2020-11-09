@@ -227,7 +227,7 @@ impl GameScreen {
 }
 
 fn general_setup(
-    mut commands: Commands,
+    commands: &mut Commands,
     mut configuration: ResMut<bevy_rapier2d::physics::RapierConfiguration>,
 ) {
     configuration.gravity = bevy_rapier2d::rapier::math::Vector::new(0., 0.);

@@ -14,12 +14,15 @@ tracing-subscriber = "0.2"
 rand = "0.7"
 enum-utils = "0.1"
 lazy_static = "1.4"
-bevy_easings = { version = "0.2", default-features = false }
-bevy_ninepatch = "0.3"
-bevy_log_diagnostic = "0.2"
+# bevy_easings = { version = "0.2", default-features = false }
+bevy_easings = { git = "https://github.com/mockersf/bevy_extra", default-features = false }
+# bevy_ninepatch = "0.3"
+bevy_ninepatch = { git = "https://github.com/mockersf/bevy_extra" }
+# bevy_log_diagnostic = "0.2"
+bevy_log_diagnostic = { git = "https://github.com/mockersf/bevy_extra" }
 bevy_diagnostic_counter = { git = "https://github.com/mockersf/bevy_extra" }
-bevy_rapier2d = "0.5"
-# bevy_rapier2d = { path = "../bevy_friends/bevy_rapier/bevy_rapier2d" }
+# bevy_rapier2d = "0.5"
+bevy_rapier2d = { git = "https://github.com/vleue/bevy_rapier" }
 
 config = { path = "crates/config" }
 asset_io = { path = "crates/asset_io", optional = true }

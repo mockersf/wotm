@@ -32,7 +32,7 @@ impl bevy::app::Plugin for Plugin {
 }
 
 fn setup(
-    mut commands: Commands,
+    commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     asset_server: Res<AssetServer>,
@@ -59,7 +59,7 @@ fn setup(
 }
 
 fn tear_down(
-    mut commands: Commands,
+    commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     query: Query<With<ScreenTag, Entity>>,

@@ -46,7 +46,7 @@ fn update_stats(
 }
 
 fn setup(
-    mut commands: Commands,
+    commands: &mut Commands,
     mut game_screen: ResMut<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     mut game: ResMut<crate::game::Game>,
@@ -136,7 +136,7 @@ fn setup(
 }
 
 fn tear_down(
-    mut commands: Commands,
+    commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     query: Query<With<ScreenTag, Entity>>,

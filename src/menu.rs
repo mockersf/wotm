@@ -34,7 +34,6 @@ impl bevy::app::Plugin for Plugin {
             .add_system(button_system.system())
             .add_system(display_menu_item_selector.system())
             .add_system(rotate_on_self.system())
-            .add_system(orbiting_container.system())
             .add_system(go_away.system())
             .add_system(despawn_gone_ships.system())
             .add_system(menu_ship_behaviour.system())
@@ -77,7 +76,7 @@ impl RotateOnSelf {
 }
 
 fn setup(
-    mut commands: Commands,
+    commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     mut asset_handles: ResMut<crate::AssetHandles>,
@@ -220,7 +219,7 @@ fn setup(
                 });
                 let entity = commands.current_entity().unwrap();
                 let button = button.add(
-                    &mut commands,
+                    commands,
                     225.,
                     50.,
                     Rect::all(Val::Auto),
@@ -314,7 +313,7 @@ fn setup(
 }
 
 fn tear_down(
-    mut commands: Commands,
+    commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     query: Query<With<ScreenTag, Entity>>,
@@ -427,17 +426,19 @@ fn display_menu_item_selector(
     }
 }
 
-fn rotate_on_self(time: Res<Time>, rotate: &RotateOnSelf, mut transform: Mut<Transform>) {
-    transform.rotation = Quat::from_axis_angle(
-        Vec3::unit_z(),
-        rotate.direction.to_factor()
-            * ((time.seconds_since_startup % rotate.duration) / rotate.duration
-                * (2. * std::f64::consts::PI)
-                + rotate.offset) as f32,
-    )
+fn rotate_on_self(time: Res<Time>, mut query: Query<(&RotateOnSelf, &mut Transform)>) {
+    for (rotate, mut transform) in query.iter_mut() {
+        transform.rotation = Quat::from_axis_angle(
+            Vec3::unit_z(),
+            rotate.direction.to_factor()
+                * ((time.seconds_since_startup % rotate.duration) / rotate.duration
+                    * (2. * std::f64::consts::PI)
+                    + rotate.offset) as f32,
+        )
+    }
 }
 
-fn print_events(events: Res<bevy_rapier2d::physics::EventQueue>) {
+fn print_events(_events: Res<bevy_rapier2d::physics::EventQueue>) {
     // while let Ok(proximity_event) = events.proximity_events.pop() {
     //     println!("Received proximity event: {:?}", proximity_event);
     // }
@@ -448,7 +449,7 @@ fn print_events(events: Res<bevy_rapier2d::physics::EventQueue>) {
 }
 
 fn menu_ship_behaviour(
-    mut commands: Commands,
+    commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     query: Query<With<crate::space::Ship, Without<GoAwayAfter, Without<Bye, Entity>>>>,
 ) {
@@ -459,80 +460,57 @@ fn menu_ship_behaviour(
     }
 }
 
-fn orbiting_container(
-    time: Res<Time>,
-    mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
-    rigid_body: &bevy_rapier2d::physics::RigidBodyHandleComponent,
-    orbiter: &crate::space::Orbiter,
-) {
-    let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
-    // let position = body.position;
-    let target_x = (time.seconds_since_startup as f32 * orbiter.speed + orbiter.offset).cos();
-    let target_y = (time.seconds_since_startup as f32 * orbiter.speed + orbiter.offset).sin();
-    let target = bevy_rapier2d::rapier::math::Vector::new(target_x, target_y);
-
-    let (linvel, rot) = crate::space::go_from_to_rapier(
-        body.position.translation.vector
-            - bevy_rapier2d::rapier::math::Vector::new(orbiter.center_x, orbiter.center_y),
-        target * orbiter.distance,
-    );
-    body.linvel = linvel * orbiter.speed * orbiter.distance;
-    body.angvel = 0.;
-    body.position.rotation = bevy_rapier2d::na::UnitComplex::from_angle(rot);
-}
-
 struct GoAwayAfter(Timer);
 struct Bye {
     timer: Timer,
     target: bevy_rapier2d::rapier::math::Vector<f32>,
 }
 
-fn go_away(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
-    rigid_body: &bevy_rapier2d::physics::RigidBodyHandleComponent,
-    mut gaa: Mut<GoAwayAfter>,
-    entity: Entity,
-) {
-    gaa.0.tick(time.delta_seconds);
-    if gaa.0.finished && rand::thread_rng().gen_bool(0.001) {
-        commands.remove_one::<crate::space::Orbiter>(entity);
-        commands.remove_one::<GoAwayAfter>(entity);
+fn go_away(commands: &mut Commands, time: Res<Time>, mut query: Query<(&mut GoAwayAfter, Entity)>) {
+    for (mut gaa, entity) in query.iter_mut() {
+        gaa.0.tick(time.delta_seconds);
+        if gaa.0.finished && rand::thread_rng().gen_bool(0.001) {
+            commands.remove_one::<crate::space::Orbiter>(entity);
+            commands.remove_one::<GoAwayAfter>(entity);
 
-        let mut x = rand::thread_rng().gen_range(-1., 1.);
-        x += if x > 0. { 1. } else { -1. };
-        let mut y = rand::thread_rng().gen_range(-1., 1.);
-        y += if y > 0. { 1. } else { -1. };
-        let target = dbg!(bevy_rapier2d::rapier::math::Vector::new(x, y).normalize() * 10000.);
-        commands.insert_one(
-            entity,
-            Bye {
-                timer: Timer::from_seconds(10., false),
-                target,
-            },
-        );
+            let mut x = rand::thread_rng().gen_range(-1., 1.);
+            x += if x > 0. { 1. } else { -1. };
+            let mut y = rand::thread_rng().gen_range(-1., 1.);
+            y += if y > 0. { 1. } else { -1. };
+            let target = bevy_rapier2d::rapier::math::Vector::new(x, y).normalize() * 10000.;
+            commands.insert_one(
+                entity,
+                Bye {
+                    timer: Timer::from_seconds(10., false),
+                    target,
+                },
+            );
+        }
     }
 }
 
 fn despawn_gone_ships(
-    mut commands: Commands,
+    commands: &mut Commands,
     time: Res<Time>,
     mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
-    rigid_body: &bevy_rapier2d::physics::RigidBodyHandleComponent,
-    mut bye: Mut<Bye>,
-    entity: Entity,
+    mut query: Query<(
+        &bevy_rapier2d::physics::RigidBodyHandleComponent,
+        &mut Bye,
+        Entity,
+    )>,
 ) {
-    bye.timer.tick(time.delta_seconds);
-    if bye.timer.just_finished {
-        commands.despawn_recursive(entity);
-    } else {
-        let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
-        let (linvel, rot) =
-            crate::space::go_from_to_rapier(body.position.translation.vector, bye.target);
-        body.linvel = linvel * 100.;
-        body.angvel = 0.;
-        body.position.rotation =
-            bevy_rapier2d::na::UnitComplex::from_angle(rot - std::f32::consts::FRAC_PI_2);
+    for (rigid_body, mut bye, entity) in query.iter_mut() {
+        bye.timer.tick(time.delta_seconds);
+        if bye.timer.just_finished {
+            commands.despawn_recursive(entity);
+        } else {
+            let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
+            let (linvel, rot) =
+                crate::space::go_from_to_rapier(body.position.translation.vector, bye.target);
+            body.linvel = linvel * 100.;
+            body.angvel = 0.;
+            body.position.rotation =
+                bevy_rapier2d::na::UnitComplex::from_angle(rot - std::f32::consts::FRAC_PI_2);
+        }
     }
 }

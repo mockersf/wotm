@@ -24,19 +24,17 @@ pub struct Orbiter {
     pub offset: f32,
     direction: RotationDirection,
     pub distance: f32,
-    pub center_x: f32,
-    pub center_y: f32,
+    pub around: Entity,
 }
 
 impl Orbiter {
-    pub fn every(speed: f32, center_x: f32, center_y: f32, distance: f32) -> Self {
+    pub fn every(speed: f32, around: Entity, distance: f32) -> Self {
         Self {
             speed,
             offset: rand::thread_rng().gen_range(0., 2. * std::f32::consts::PI),
             direction: RotationDirection::CounterClockwise,
             distance,
-            center_x,
-            center_y,
+            around,
         }
     }
 }
@@ -56,52 +54,76 @@ impl SpawnShip {
 pub struct Plugin;
 impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(spawn_ship.system());
+        app.add_system(spawn_ship.system())
+            .add_system(orbite_around.system());
     }
 }
 
 fn spawn_ship(
-    mut commands: Commands,
+    commands: &mut Commands,
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
-    mut spawn: Mut<SpawnShip>,
-    global_transform: &GlobalTransform,
+    mut query: Query<(&mut SpawnShip, &GlobalTransform, Entity)>,
 ) {
-    let game_handles = asset_handles.get_game_handles_unsafe();
-    spawn.every.tick(time.delta_seconds);
-    if spawn.every.just_finished {
-        let ship = game_handles.ships.choose(&mut rand::thread_rng()).unwrap();
-        let orbiter = Orbiter::every(
-            rand::thread_rng().gen_range(0.5, 1.),
-            global_transform.translation.x(),
-            global_transform.translation.y(),
-            100.,
-        );
+    for (mut spawn, global_transform, entity) in query.iter_mut() {
+        let game_handles = asset_handles.get_game_handles_unsafe();
+        spawn.every.tick(time.delta_seconds);
+        if spawn.every.just_finished {
+            let ship = game_handles.ships.choose(&mut rand::thread_rng()).unwrap();
+            let orbiter = Orbiter::every(rand::thread_rng().gen_range(0.5, 1.), entity, 50.);
 
-        commands
-            .spawn(SpriteComponents {
-                transform: Transform {
-                    translation: global_transform.translation,
-                    scale: Vec3::splat(0.10),
+            commands
+                .spawn(SpriteComponents {
+                    transform: Transform {
+                        translation: global_transform.translation,
+                        scale: Vec3::splat(0.05),
+                        ..Default::default()
+                    },
+                    material: ship.clone(),
                     ..Default::default()
-                },
-                material: ship.clone(),
-                ..Default::default()
-            })
-            .with(
-                bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().translation(
-                    global_transform.translation.x(),
-                    global_transform.translation.y(),
-                ),
-            )
-            .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.))
-            .with(orbiter)
-            .with(Ship);
+                })
+                .with(
+                    bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().translation(
+                        global_transform.translation.x(),
+                        global_transform.translation.y(),
+                    ),
+                )
+                .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.))
+                .with(orbiter)
+                .with(Ship);
+        }
     }
 }
 
-pub fn go_from_to(from: Vec2, to: Vec2) -> (Vec2, f32) {
-    (to - from, from.angle_between(to))
+fn orbite_around(
+    time: Res<Time>,
+    mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
+    orbiters: Query<(
+        &bevy_rapier2d::physics::RigidBodyHandleComponent,
+        &crate::space::Orbiter,
+    )>,
+    centers: Query<&GlobalTransform>,
+) {
+    for (rigid_body, orbiter) in orbiters.iter() {
+        let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
+        let target_x = (time.seconds_since_startup as f32 * orbiter.speed + orbiter.offset).cos();
+        let target_y = (time.seconds_since_startup as f32 * orbiter.speed + orbiter.offset).sin();
+        let target = bevy_rapier2d::rapier::math::Vector::new(target_x, target_y);
+
+        let center_transform = centers.get(orbiter.around).unwrap();
+
+        let (linvel, rot) = crate::space::go_from_to_rapier(
+            body.position.translation.vector
+                - bevy_rapier2d::rapier::math::Vector::new(
+                    center_transform.translation.x(),
+                    center_transform.translation.y(),
+                ),
+            target * orbiter.distance,
+        );
+        body.linvel = linvel * orbiter.speed * orbiter.distance;
+        body.angvel = 0.;
+        body.position.rotation = bevy_rapier2d::na::UnitComplex::from_angle(rot);
+    }
 }
 
 use bevy_rapier2d::rapier::math::Vector;

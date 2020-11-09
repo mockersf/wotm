@@ -1,7 +1,5 @@
-use bevy::app::{prelude::Plugin, AppBuilder};
-use bevy::ecs::IntoQuerySystem;
+use bevy::prelude::*;
 use bevy::tasks::IoTaskPool;
-use bevy::type_registry::RegisterType;
 
 #[derive(Default)]
 pub struct InMemoryAssetPlugin;
