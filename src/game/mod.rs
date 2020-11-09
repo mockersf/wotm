@@ -68,12 +68,18 @@ fn setup(
         let nb_moon = rand::thread_rng().gen_range(1, 4);
 
         for i in 0..nb_moon {
+            let self_rotation = rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_3;
             let orbiter = crate::space::Orbiter::every(
                 rand::thread_rng().gen_range(0.01, 0.05),
                 planet,
+                if rand::thread_rng().gen_bool(0.5) {
+                    crate::space::RotationDirection::Clockwise
+                } else {
+                    crate::space::RotationDirection::CounterClockwise
+                },
                 (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(-20., 20.),
             )
-            .self_rotate(rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_3);
+            .self_rotate(self_rotation);
             let start_position =
                 crate::space::target_position(time.seconds_since_startup as f32, &orbiter);
 
@@ -101,7 +107,14 @@ fn setup(
                         )),
                 )
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
-                .with(crate::space::SpawnShip::every(5.))
+                .with(crate::space::SpawnShip::every(
+                    5.,
+                    if self_rotation < 0. {
+                        crate::space::RotationDirection::Clockwise
+                    } else {
+                        crate::space::RotationDirection::CounterClockwise
+                    },
+                ))
                 .with(ScreenTag);
         }
 

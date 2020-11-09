@@ -130,7 +130,10 @@ fn setup(
                     })
                     .with(RotateOnSelf::every(10.));
             })
-            .with(crate::space::SpawnShip::every(7.).with_scale(2.))
+            .with(
+                crate::space::SpawnShip::every(7., crate::space::RotationDirection::Clockwise)
+                    .with_scale(2.),
+            )
             .with(ScreenTag);
 
         commands

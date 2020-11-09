@@ -3,7 +3,7 @@ use rand::{seq::SliceRandom, Rng};
 
 pub struct Ship;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum RotationDirection {
     Clockwise,
     CounterClockwise,
@@ -35,11 +35,11 @@ pub struct Orbiter {
 }
 
 impl Orbiter {
-    pub fn every(speed: f32, around: Entity, distance: f32) -> Self {
+    pub fn every(speed: f32, around: Entity, direction: RotationDirection, distance: f32) -> Self {
         Self {
             speed,
             offset: rand::thread_rng().gen_range(0., 2. * std::f32::consts::PI),
-            direction: RotationDirection::CounterClockwise,
+            direction,
             distance,
             around,
             rotation: Rotation::Free,
@@ -56,15 +56,17 @@ impl Orbiter {
 pub struct SpawnShip {
     every: Timer,
     scale: f32,
+    rotation_direction: RotationDirection,
 }
 
 impl SpawnShip {
-    pub fn every(duration: f32) -> Self {
+    pub fn every(duration: f32, rotation_direction: RotationDirection) -> Self {
         let mut timer = Timer::from_seconds(duration, true);
         timer.elapsed = 3. * duration / 4.;
         Self {
             every: timer,
             scale: 1.,
+            rotation_direction,
         }
     }
 
@@ -97,6 +99,7 @@ fn spawn_ship(
             let orbiter = Orbiter::every(
                 rand::thread_rng().gen_range(0.5, 1.),
                 entity,
+                spawn.rotation_direction,
                 spawn.scale * 50.,
             );
 
@@ -132,8 +135,13 @@ pub fn target_position(
     seconds: f32,
     orbiter: &crate::space::Orbiter,
 ) -> bevy_rapier2d::rapier::math::Vector<f32> {
-    let target_x = (seconds * orbiter.speed + orbiter.offset).cos();
-    let target_y = (seconds * orbiter.speed + orbiter.offset).sin();
+    let sign = if orbiter.direction == RotationDirection::Clockwise {
+        1.
+    } else {
+        -1.
+    };
+    let target_x = (sign * seconds * orbiter.speed + orbiter.offset).cos();
+    let target_y = (sign * seconds * orbiter.speed + orbiter.offset).sin();
     bevy_rapier2d::rapier::math::Vector::new(target_x, target_y) * orbiter.distance
 }
 
