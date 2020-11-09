@@ -35,6 +35,7 @@ fn setup(
     commands: &mut Commands,
     (game_screen, _game, mut screen): (Res<crate::GameScreen>, Res<Game>, ResMut<Screen>),
     _wnds: Res<Windows>,
+    time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
@@ -67,11 +68,19 @@ fn setup(
         let nb_moon = rand::thread_rng().gen_range(1, 4);
 
         for i in 0..nb_moon {
+            let orbiter = crate::space::Orbiter::every(
+                rand::thread_rng().gen_range(0.01, 0.05),
+                planet,
+                (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(-20., 20.),
+            );
+            let start_position =
+                crate::space::target_position(time.seconds_since_startup as f32, &orbiter);
+
             commands
                 .spawn(SpriteComponents {
                     transform: Transform {
                         scale: Vec3::splat(0.10),
-                        translation: Vec3::new(0., 0., crate::Z_MOON),
+                        translation: Vec3::new(start_position.x, start_position.y, crate::Z_MOON),
                         ..Default::default()
                     },
                     material: game_handles
@@ -81,13 +90,15 @@ fn setup(
                         .clone_weak(),
                     ..Default::default()
                 })
-                .with(crate::space::Orbiter::every(
-                    rand::thread_rng().gen_range(0.01, 0.05),
-                    planet,
-                    (i as f32 + 1.) * (300. / nb_moon as f32)
-                        + rand::thread_rng().gen_range(-20., 20.),
-                ))
-                .with(bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().angvel(0.1))
+                .with(orbiter)
+                .with(
+                    bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                        .angvel(0.1)
+                        .position(bevy_rapier2d::na::Isometry2::translation(
+                            start_position.x,
+                            start_position.y,
+                        )),
+                )
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
                 .with(crate::space::SpawnShip::every(5.))
                 .with(ScreenTag);

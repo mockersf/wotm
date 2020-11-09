@@ -114,6 +114,15 @@ fn spawn_ship(
     }
 }
 
+pub fn target_position(
+    seconds: f32,
+    orbiter: &crate::space::Orbiter,
+) -> bevy_rapier2d::rapier::math::Vector<f32> {
+    let target_x = (seconds * orbiter.speed + orbiter.offset).cos();
+    let target_y = (seconds * orbiter.speed + orbiter.offset).sin();
+    bevy_rapier2d::rapier::math::Vector::new(target_x, target_y) * orbiter.distance
+}
+
 fn orbite_around(
     time: Res<Time>,
     mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
@@ -125,9 +134,6 @@ fn orbite_around(
 ) {
     for (rigid_body, orbiter) in orbiters.iter() {
         let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
-        let target_x = (time.seconds_since_startup as f32 * orbiter.speed + orbiter.offset).cos();
-        let target_y = (time.seconds_since_startup as f32 * orbiter.speed + orbiter.offset).sin();
-        let target = bevy_rapier2d::rapier::math::Vector::new(target_x, target_y);
 
         let center_transform = centers.get(orbiter.around).unwrap();
 
@@ -137,7 +143,7 @@ fn orbite_around(
                     center_transform.translation.x(),
                     center_transform.translation.y(),
                 ),
-            target * orbiter.distance,
+            target_position(time.seconds_since_startup as f32, orbiter),
         );
         body.linvel = linvel * orbiter.speed * orbiter.distance;
         body.angvel = 0.;
