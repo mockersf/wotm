@@ -41,13 +41,23 @@ impl Orbiter {
 
 pub struct SpawnShip {
     every: Timer,
+    scale: f32,
 }
 
 impl SpawnShip {
     pub fn every(duration: f32) -> Self {
         let mut timer = Timer::from_seconds(duration, true);
         timer.elapsed = 3. * duration / 4.;
-        Self { every: timer }
+        Self {
+            every: timer,
+            scale: 1.,
+        }
+    }
+
+    pub fn with_scale(mut self, scale: f32) -> Self {
+        self.scale = scale;
+
+        self
     }
 }
 
@@ -70,13 +80,17 @@ fn spawn_ship(
         spawn.every.tick(time.delta_seconds);
         if spawn.every.just_finished {
             let ship = game_handles.ships.choose(&mut rand::thread_rng()).unwrap();
-            let orbiter = Orbiter::every(rand::thread_rng().gen_range(0.5, 1.), entity, 50.);
+            let orbiter = Orbiter::every(
+                rand::thread_rng().gen_range(0.5, 1.),
+                entity,
+                spawn.scale * 50.,
+            );
 
             commands
                 .spawn(SpriteComponents {
                     transform: Transform {
                         translation: global_transform.translation,
-                        scale: Vec3::splat(0.05),
+                        scale: Vec3::splat(spawn.scale * 0.05),
                         ..Default::default()
                     },
                     material: ship.clone(),
@@ -88,7 +102,9 @@ fn spawn_ship(
                         global_transform.translation.y(),
                     ),
                 )
-                .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.))
+                .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
+                    spawn.scale * 5.,
+                ))
                 .with(orbiter)
                 .with(Ship);
         }
