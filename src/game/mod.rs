@@ -72,7 +72,8 @@ fn setup(
                 rand::thread_rng().gen_range(0.01, 0.05),
                 planet,
                 (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(-20., 20.),
-            );
+            )
+            .self_rotate(rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_3);
             let start_position =
                 crate::space::target_position(time.seconds_since_startup as f32, &orbiter);
 
