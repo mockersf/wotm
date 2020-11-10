@@ -26,6 +26,7 @@ impl bevy::app::Plugin for Plugin {
             .init_resource::<Game>()
             .add_event::<GameEvents>()
             .add_event::<InterestingEvent>()
+            .add_system(keyboard_input_system.system())
             .add_system(setup.system())
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
     }
@@ -134,15 +135,41 @@ fn tear_down(
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     query: Query<With<ScreenTag, Entity>>,
+    ship_query: Query<With<crate::space::Ship, Entity>>,
 ) {
     if game_screen.current_screen != CURRENT_SCREEN && screen.loaded {
         info!("tear down");
+
+        for entity in ship_query.iter() {
+            commands.despawn_recursive(entity);
+        }
 
         for entity in query.iter() {
             commands.despawn_recursive(entity);
         }
 
         screen.loaded = false;
+    }
+}
+
+fn keyboard_input_system(
+    mut game_screen: ResMut<crate::GameScreen>,
+    screen: ResMut<Screen>,
+    keyboard_input: Res<Input<KeyCode>>,
+    mut wnds: ResMut<Windows>,
+) {
+    if game_screen.current_screen == CURRENT_SCREEN && screen.loaded {
+        if keyboard_input.just_released(KeyCode::Escape) {
+            game_screen.current_screen = crate::Screen::Menu;
+        } else if keyboard_input.just_released(KeyCode::F) {
+            let window = wnds.get_primary_mut().unwrap();
+            match window.mode() {
+                bevy::window::WindowMode::Windowed => {
+                    window.set_mode(bevy::window::WindowMode::BorderlessFullscreen)
+                }
+                _ => window.set_mode(bevy::window::WindowMode::Windowed),
+            }
+        }
     }
 }
 

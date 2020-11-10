@@ -326,11 +326,11 @@ fn tear_down(
     if game_screen.current_screen != CURRENT_SCREEN && screen.loaded {
         info!("tear down");
 
-        for entity in query.iter() {
+        for entity in ship_query.iter() {
             commands.despawn_recursive(entity);
         }
 
-        for entity in ship_query.iter() {
+        for entity in query.iter() {
             commands.despawn_recursive(entity);
         }
 
