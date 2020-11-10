@@ -132,7 +132,8 @@ fn setup(
             })
             .with(
                 crate::space::SpawnShip::every(7., crate::space::RotationDirection::Clockwise)
-                    .with_scale(2.),
+                    .with_scale(2.)
+                    .with_headstart(),
             )
             .with(ScreenTag);
 

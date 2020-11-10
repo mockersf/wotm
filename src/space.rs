@@ -61,10 +61,8 @@ pub struct SpawnShip {
 
 impl SpawnShip {
     pub fn every(duration: f32, rotation_direction: RotationDirection) -> Self {
-        let mut timer = Timer::from_seconds(duration, true);
-        timer.elapsed = 3. * duration / 4.;
         Self {
-            every: timer,
+            every: Timer::from_seconds(duration, true),
             scale: 1.,
             rotation_direction,
         }
@@ -72,6 +70,12 @@ impl SpawnShip {
 
     pub fn with_scale(mut self, scale: f32) -> Self {
         self.scale = scale;
+
+        self
+    }
+
+    pub fn with_headstart(mut self) -> Self {
+        self.every.elapsed = 3. * self.every.duration / 4.;
 
         self
     }
