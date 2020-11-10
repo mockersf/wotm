@@ -118,6 +118,9 @@ fn setup(
                         crate::space::RotationDirection::CounterClockwise
                     },
                 ))
+                .with_children(|p| {
+                    p.spawn((crate::space::SpawnShipProgress,));
+                })
                 .with(ScreenTag);
         }
 

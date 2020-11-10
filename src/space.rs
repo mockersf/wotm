@@ -84,16 +84,54 @@ impl bevy::app::Plugin for Plugin {
             .add_system(orbite_around.system());
     }
 }
+pub struct SpawnShipProgress;
 
 fn spawn_ship(
     commands: &mut Commands,
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
-    mut query: Query<(&mut SpawnShip, &GlobalTransform, Entity)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut query: Query<(&mut SpawnShip, &GlobalTransform, Entity, &Children)>,
+    progress_query: Query<&SpawnShipProgress>,
 ) {
-    for (mut spawn, global_transform, entity) in query.iter_mut() {
+    let red = materials.add(Color::rgb(0., 100.0, 0.0).into());
+
+    for (mut spawn, global_transform, entity, children) in query.iter_mut() {
         let game_handles = asset_handles.get_game_handles_unsafe();
         spawn.every.tick(time.delta_seconds);
+
+        let angle = spawn.every.elapsed / spawn.every.duration * 2. * std::f32::consts::PI;
+
+        let radius = 300.;
+        let mut builder = bevy_prototype_lyon::path::PathBuilder::new();
+        builder.move_to(bevy_prototype_lyon::prelude::point(radius, 0.));
+        builder.arc(
+            bevy_prototype_lyon::prelude::point(0., 0.),
+            radius,
+            radius,
+            angle,
+            0.,
+        );
+        let path = builder.build();
+        let sprite = path.stroke(
+            red.clone(),
+            &mut meshes,
+            Vec3::new(0.0, 0.0, 0.0),
+            &bevy_prototype_lyon::prelude::StrokeOptions::default()
+                .with_line_width(10.0)
+                .with_line_cap(bevy_prototype_lyon::prelude::LineCap::Round)
+                .with_line_join(bevy_prototype_lyon::prelude::LineJoin::Round),
+        );
+
+        if let Some(progress_entity) = children
+            .iter()
+            .map(|e| *e)
+            .find(|entity| progress_query.get(*entity).is_ok())
+        {
+            commands.insert(progress_entity, sprite);
+        }
+
         if spawn.every.just_finished {
             let ship = game_handles.ships.choose(&mut rand::thread_rng()).unwrap();
             let orbiter = Orbiter::every(
