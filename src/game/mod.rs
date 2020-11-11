@@ -4,6 +4,8 @@ use tracing::info;
 
 const CURRENT_SCREEN: crate::Screen = crate::Screen::Game;
 
+mod ui;
+
 struct ScreenTag;
 
 pub struct Screen {
@@ -27,22 +29,21 @@ impl bevy::app::Plugin for Plugin {
             .add_event::<GameEvents>()
             .add_event::<InterestingEvent>()
             .add_system(keyboard_input_system.system())
-            .add_system(setup.system())
+            .add_system(ui::setup.system())
+            .add_system(setup_game.system())
+            .add_system(setup_finish.system())
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
     }
 }
 
-fn setup(
+fn setup_game(
     commands: &mut Commands,
-    (game_screen, _game, mut screen): (Res<crate::GameScreen>, Res<Game>, ResMut<Screen>),
-    _wnds: Res<Windows>,
+    (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
-
-        // let _ratio = wnds.get_primary().unwrap().width() as f32 / BOARD_X as f32 / TILE_SIZE as f32;
 
         let game_handles = asset_handles.get_game_handles_unsafe();
 
@@ -51,11 +52,13 @@ fn setup(
             .choose(&mut rand::thread_rng())
             .unwrap();
 
+        let shift_left = -200.;
+
         commands
             .spawn(SpriteComponents {
                 transform: Transform {
                     scale: Vec3::splat(0.10),
-                    translation: Vec3::new(0., 0., crate::Z_PLANET),
+                    translation: Vec3::new(shift_left, 0., crate::Z_PLANET),
                     ..Default::default()
                 },
                 material: planet.clone(),
@@ -63,6 +66,7 @@ fn setup(
             })
             .with(
                 bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                    .position(bevy_rapier2d::na::Isometry2::translation(shift_left, 0.))
                     .angvel(rand::thread_rng().gen_range(-1., 1.) * 0.2),
             )
             .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
@@ -91,7 +95,11 @@ fn setup(
                 .spawn(SpriteComponents {
                     transform: Transform {
                         scale: Vec3::splat(0.10),
-                        translation: Vec3::new(start_position.x, start_position.y, crate::Z_MOON),
+                        translation: Vec3::new(
+                            start_position.x + shift_left,
+                            start_position.y,
+                            crate::Z_MOON,
+                        ),
                         ..Default::default()
                     },
                     material: game_handles
@@ -106,7 +114,7 @@ fn setup(
                     bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
                         .angvel(self_rotation)
                         .position(bevy_rapier2d::na::Isometry2::translation(
-                            start_position.x,
+                            start_position.x + shift_left,
                             start_position.y,
                         )),
                 )
@@ -124,6 +132,14 @@ fn setup(
                 })
                 .with(ScreenTag);
         }
+    }
+}
+
+fn setup_finish(
+    (game_screen, _game, mut screen): (Res<crate::GameScreen>, Res<Game>, ResMut<Screen>),
+) {
+    if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
+        info!("Loading screen");
 
         screen.loaded = true;
         screen.first_load = false;

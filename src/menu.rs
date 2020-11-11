@@ -88,7 +88,7 @@ fn setup(
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
 
-        let panel_handles = asset_handles.get_panel_handle(&asset_server, &mut nine_patches);
+        let panel_handles = asset_handles.get_menu_panel_handle(&asset_server, &mut nine_patches);
 
         let button_handle = asset_handles.get_button_handle(
             &asset_server,

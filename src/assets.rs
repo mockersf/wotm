@@ -24,6 +24,10 @@ pub struct AssetHandles {
         Handle<bevy_ninepatch::NinePatchBuilder<()>>,
         Handle<Texture>,
     )>,
+    menu_panel_handle: Option<(
+        Handle<bevy_ninepatch::NinePatchBuilder<()>>,
+        Handle<Texture>,
+    )>,
     button_handle: Option<Handle<crate::ui::button::Button>>,
     character_handle: Option<Handle<TextureAtlas>>,
     selection_handle: Option<Handle<ColorMaterial>>,
@@ -49,11 +53,27 @@ impl AssetHandles {
         Handle<Texture>,
     ) {
         if self.panel_handle.is_none() {
-            let panel_texture_handle = assets.load("ui/glassPanel_corners.png");
-            let np = bevy_ninepatch::NinePatchBuilder::by_margins(20, 20, 20, 20);
+            let panel_texture_handle = assets.load("ui/glassPanel_right_corners.png");
+            let np = bevy_ninepatch::NinePatchBuilder::by_margins(20, 20, 20, 10);
             self.panel_handle = Some((nine_patches.add(np), panel_texture_handle));
         };
         self.panel_handle.as_ref().unwrap().clone()
+    }
+
+    pub fn get_menu_panel_handle(
+        &mut self,
+        assets: &AssetServer,
+        nine_patches: &mut Assets<bevy_ninepatch::NinePatchBuilder<()>>,
+    ) -> (
+        Handle<bevy_ninepatch::NinePatchBuilder<()>>,
+        Handle<Texture>,
+    ) {
+        if self.menu_panel_handle.is_none() {
+            let panel_texture_handle = assets.load("ui/glassPanel_corners.png");
+            let np = bevy_ninepatch::NinePatchBuilder::by_margins(20, 20, 20, 20);
+            self.menu_panel_handle = Some((nine_patches.add(np), panel_texture_handle));
+        };
+        self.menu_panel_handle.as_ref().unwrap().clone()
     }
 
     pub fn get_button_handle(
