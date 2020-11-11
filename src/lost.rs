@@ -126,9 +126,6 @@ fn setup(
         if game.score > game_screen.highscore {
             game_screen.highscore = game.score;
         }
-        if game.round > game_screen.highround {
-            game_screen.highround = game.round;
-        }
         *game = crate::game::Game::default();
 
         screen.loaded = true;

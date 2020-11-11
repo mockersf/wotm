@@ -215,17 +215,10 @@ impl Default for GameState {
 
 #[derive(Default)]
 pub struct Game {
-    // player: Player,
-    pub round: u16,
     pub score: u32,
-    // state: GameState,
 }
 
 #[derive(PartialEq)]
-pub enum GameEvents {
-    // Lost,
-// Pause,
-// NewHighscore,
-}
+pub enum GameEvents {}
 
 pub enum InterestingEvent {}

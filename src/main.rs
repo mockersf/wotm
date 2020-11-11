@@ -208,7 +208,6 @@ pub enum Screen {
 pub struct GameScreen {
     pub current_screen: Screen,
     pub highscore: u32,
-    pub highround: u16,
 }
 
 impl Default for GameScreen {
@@ -216,7 +215,6 @@ impl Default for GameScreen {
         GameScreen {
             current_screen: Screen::Splash,
             highscore: 0,
-            highround: 0,
         }
     }
 }
@@ -224,9 +222,6 @@ impl Default for GameScreen {
 impl GameScreen {
     pub fn is_new_highscore(&self, score: u32) -> bool {
         self.highscore != 0 && score > self.highscore
-    }
-    pub fn is_new_highround(&self, round: u16) -> bool {
-        self.highround != 0 && round > self.highround
     }
 }
 
