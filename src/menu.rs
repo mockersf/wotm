@@ -320,8 +320,8 @@ fn tear_down(
     commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
-    query: Query<With<ScreenTag, Entity>>,
-    ship_query: Query<With<crate::space::Ship, Entity>>,
+    query: Query<Entity, With<ScreenTag>>,
+    ship_query: Query<Entity, With<crate::space::Ship>>,
 ) {
     if game_screen.current_screen != CURRENT_SCREEN && screen.loaded {
         info!("tear down");
@@ -386,11 +386,14 @@ fn button_system(
     mut game_screen: ResMut<crate::GameScreen>,
     mut screen: ResMut<Screen>,
 
-    mut interaction_query: Query<(
-        &Button,
+    mut interaction_query: Query<
+        (
+            &Button,
+            &Interaction,
+            &crate::ui::button::ButtonId<MenuButton>,
+        ),
         Mutated<Interaction>,
-        &crate::ui::button::ButtonId<MenuButton>,
-    )>,
+    >,
 ) {
     for (_button, interaction, button_id) in interaction_query.iter_mut() {
         match *interaction {
@@ -455,7 +458,7 @@ fn print_events(_events: Res<bevy_rapier2d::physics::EventQueue>) {
 fn menu_ship_behaviour(
     commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
-    query: Query<With<crate::space::Ship, Without<GoAwayAfter, Without<Bye, Entity>>>>,
+    query: Query<Entity, (With<crate::space::Ship>, Without<Bye>, Without<GoAwayAfter>)>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN {
         for ship in query.iter() {

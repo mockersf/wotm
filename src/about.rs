@@ -114,7 +114,7 @@ fn tear_down(
     commands: &mut Commands,
     game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
-    query: Query<With<ScreenTag, Entity>>,
+    query: Query<Entity, With<ScreenTag>>,
 ) {
     if game_screen.current_screen != CURRENT_SCREEN && screen.loaded {
         info!("tear down");

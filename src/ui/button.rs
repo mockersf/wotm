@@ -149,7 +149,10 @@ impl FromResources for ButtonMaterials {
 
 fn button_effect(
     button_materials: Res<ButtonMaterials>,
-    mut interaction_query: Query<(&bevy::ui::widget::Button, Mutated<Interaction>, &Children)>,
+    mut interaction_query: Query<
+        (&bevy::ui::widget::Button, &Interaction, &Children),
+        Mutated<Interaction>,
+    >,
     mut image_query: Query<&mut Handle<ColorMaterial>>,
 ) {
     for (_button, interaction, children) in interaction_query.iter_mut() {

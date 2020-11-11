@@ -104,7 +104,7 @@ fn spawn_ship(
         &Children,
         Option<&bevy_rapier2d::physics::RigidBodyHandleComponent>,
     )>,
-    progress_query: Query<With<SpawnShipProgress, Entity>>,
+    progress_query: Query<Entity, With<SpawnShipProgress>>,
 ) {
     let red = materials.add(Color::rgb(0., 100.0, 0.0).into());
 
