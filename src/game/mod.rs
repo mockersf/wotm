@@ -223,6 +223,33 @@ impl Default for GameState {
 #[derive(Default)]
 pub struct Game {
     pub score: u32,
+    pub selected: Option<Entity>,
+    pub ratio: Ratio,
+    pub targeted: Option<Entity>,
+}
+
+pub enum Ratio {
+    ThreeQuarter,
+    Half,
+    OneQuarter,
+    All,
+}
+
+impl Default for Ratio {
+    fn default() -> Self {
+        Ratio::ThreeQuarter
+    }
+}
+
+impl Ratio {
+    pub fn next(&mut self) {
+        *self = match self {
+            Ratio::ThreeQuarter => Ratio::Half,
+            Ratio::Half => Ratio::OneQuarter,
+            Ratio::OneQuarter => Ratio::All,
+            Ratio::All => Ratio::ThreeQuarter,
+        }
+    }
 }
 
 #[derive(PartialEq)]

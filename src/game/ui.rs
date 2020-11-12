@@ -188,14 +188,9 @@ pub fn focus_system(
     state.hovered_entity = hovered_entity;
 }
 
-#[derive(Default)]
-pub struct InteractingWith {
-    selected: Option<Entity>,
-    highlighted: Option<Entity>,
-}
-
 pub fn interaction(
     commands: &mut Commands,
+    mut game: ResMut<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
@@ -203,7 +198,6 @@ pub fn interaction(
         Local<EventReader<InteractionEvent>>,
         Res<Events<InteractionEvent>>,
     ),
-    mut state: Local<InteractingWith>,
     query_body: Query<&bevy_rapier2d::physics::RigidBodyHandleComponent>,
     query_children: Query<&Children>,
     query_interacted: Query<Entity, With<Interacted>>,
@@ -216,7 +210,7 @@ pub fn interaction(
     for event in event_reader.iter(&events) {
         let (color, entity) = match event {
             InteractionEvent::Clicked(Some(e)) => {
-                if let Some(selected) = state.selected {
+                if let Some(selected) = game.selected {
                     if selected != *e {
                         if let Ok(children) = query_children.get(selected) {
                             for entity in children
@@ -226,22 +220,26 @@ pub fn interaction(
                                 commands.despawn_recursive(*entity);
                             }
                         }
+                    } else {
+                        game.ratio.next()
                     }
+                } else {
+                    game.ratio = super::Ratio::default();
                 }
-                state.selected = Some(*e);
+                game.selected = Some(*e);
                 (selected.clone(), e)
             }
             InteractionEvent::Hovered(Some(e)) => {
-                if let Some(selected) = state.selected {
+                if let Some(selected) = game.selected {
                     if *e == selected {
                         continue;
                     }
                 }
-                state.highlighted = Some(*e);
+                game.targeted = Some(*e);
                 (highlighted.clone(), e)
             }
             InteractionEvent::Clicked(None) => {
-                if let Some(selected) = state.selected {
+                if let Some(selected) = game.selected {
                     if let Ok(children) = query_children.get(selected) {
                         for entity in children
                             .iter()
@@ -251,19 +249,19 @@ pub fn interaction(
                         }
                     }
                 }
-                state.selected = None;
+                game.selected = None;
                 continue;
             }
             InteractionEvent::Hovered(None) => {
                 // do not remove if we stop being hover the one being selected
-                if let Some(selected) = state.selected {
-                    if let Some(highlighted) = state.highlighted {
+                if let Some(selected) = game.selected {
+                    if let Some(highlighted) = game.targeted {
                         if selected == highlighted {
                             continue;
                         }
                     }
                 }
-                if let Some(children) = state.highlighted.and_then(|e| query_children.get(e).ok()) {
+                if let Some(children) = game.targeted.and_then(|e| query_children.get(e).ok()) {
                     if let Some(entity) = children
                         .iter()
                         .find(|entity| query_interacted.get(**entity).is_ok())
@@ -271,7 +269,7 @@ pub fn interaction(
                         commands.despawn_recursive(*entity);
                     }
                 }
-                state.highlighted = None;
+                game.targeted = None;
                 continue;
             }
         };
