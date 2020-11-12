@@ -106,7 +106,8 @@ fn spawn_ship(
     )>,
     progress_query: Query<Entity, With<SpawnShipProgress>>,
 ) {
-    let red = materials.add(Color::rgb(0., 100.0, 0.0).into());
+    let green = materials
+        .add(Color::rgb(0x22 as f32 / 255., 0x8B as f32 / 255., 0x22 as f32 / 255.).into());
 
     for (mut spawn, global_transform, entity, children, rigid_body) in query.iter_mut() {
         let game_handles = asset_handles.get_game_handles_unsafe();
@@ -137,11 +138,11 @@ fn spawn_ship(
                 );
                 let path = builder.build();
                 let sprite = path.stroke(
-                    red.clone(),
+                    green.clone(),
                     &mut meshes,
                     Vec3::new(0.0, 0.0, 0.0),
                     &bevy_prototype_lyon::prelude::StrokeOptions::default()
-                        .with_line_width(10.0)
+                        .with_line_width(20.)
                         .with_line_cap(bevy_prototype_lyon::prelude::LineCap::Round)
                         .with_line_join(bevy_prototype_lyon::prelude::LineJoin::Round),
                 );

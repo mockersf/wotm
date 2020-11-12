@@ -4,7 +4,7 @@ use tracing::info;
 
 const CURRENT_SCREEN: crate::Screen = crate::Screen::Game;
 
-mod ui;
+pub mod ui;
 
 struct ScreenTag;
 
@@ -28,8 +28,11 @@ impl bevy::app::Plugin for Plugin {
             .init_resource::<Game>()
             .add_event::<GameEvents>()
             .add_event::<InterestingEvent>()
+            .add_event::<ui::InteractionEvent>()
             .add_system(keyboard_input_system.system())
             .add_system(ui::setup.system())
+            .add_system(ui::interaction.system())
+            .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system.system())
             .add_system(setup_game.system())
             .add_system(setup_finish.system())
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
@@ -129,6 +132,10 @@ fn setup_game(
                 ))
                 .with_children(|p| {
                     p.spawn((crate::space::SpawnShipProgress,));
+                })
+                .with(ui::Interaction::None)
+                .with(ui::InteractionBox {
+                    size: Vec2::new(30., 30.),
                 })
                 .with(ScreenTag);
         }
