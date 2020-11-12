@@ -93,7 +93,7 @@ pub struct SpawnShipProgress;
 fn spawn_ship(
     commands: &mut Commands,
     time: Res<Time>,
-    asset_handles: Res<crate::AssetHandles>,
+    mut asset_handles: ResMut<crate::AssetHandles>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
@@ -106,8 +106,7 @@ fn spawn_ship(
     )>,
     progress_query: Query<Entity, With<SpawnShipProgress>>,
 ) {
-    let green = materials
-        .add(Color::rgb(0x22 as f32 / 255., 0x8B as f32 / 255., 0x22 as f32 / 255.).into());
+    let green = asset_handles.get_color_spawning(&mut materials);
 
     for (mut spawn, global_transform, entity, children, rigid_body) in query.iter_mut() {
         let game_handles = asset_handles.get_game_handles_unsafe();

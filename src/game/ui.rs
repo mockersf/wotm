@@ -191,6 +191,7 @@ pub fn focus_system(
 pub fn interaction(
     commands: &mut Commands,
     mut game: ResMut<Game>,
+    mut asset_handles: ResMut<crate::AssetHandles>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
@@ -202,10 +203,8 @@ pub fn interaction(
     query_children: Query<&Children>,
     query_interacted: Query<Entity, With<Interacted>>,
 ) {
-    let selected = materials
-        .add(Color::rgb(0x45 as f32 / 255., 0xb6 as f32 / 255., 0xfe as f32 / 255.).into());
-    let highlighted = materials
-        .add(Color::rgb(0x1c as f32 / 255., 0x49 as f32 / 255., 0x66 as f32 / 255.).into());
+    let selected = asset_handles.get_color_selected(&mut materials);
+    let highlighted = asset_handles.get_color_highlighted(&mut materials);
 
     for event in event_reader.iter(&events) {
         let (color, entity) = match event {

@@ -34,6 +34,10 @@ pub struct AssetHandles {
     font_main_handle: Option<Handle<Font>>,
     font_sub_handle: Option<Handle<Font>>,
     game: Option<GameHandles>,
+
+    color_spawning: Option<Handle<ColorMaterial>>,
+    color_selected: Option<Handle<ColorMaterial>>,
+    color_highlighted: Option<Handle<ColorMaterial>>,
 }
 
 #[derive(Clone)]
@@ -119,6 +123,41 @@ impl AssetHandles {
             self.font_sub_handle = Some(load!(assets, "fonts/mandrill.ttf"));
         }
         self.font_sub_handle.as_ref().unwrap().clone()
+    }
+
+    pub fn get_color_spawning(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_spawning.is_none() {
+            self.color_spawning = Some(materials.add(
+                Color::rgb(0x22 as f32 / 255., 0x8B as f32 / 255., 0x22 as f32 / 255.).into(),
+            ));
+        }
+        self.color_spawning.as_ref().unwrap().clone()
+    }
+
+    pub fn get_color_selected(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_selected.is_none() {
+            self.color_selected = Some(materials.add(
+                Color::rgb(0x45 as f32 / 255., 0xb6 as f32 / 255., 0xfe as f32 / 255.).into(),
+            ));
+        }
+        self.color_selected.as_ref().unwrap().clone()
+    }
+    pub fn get_color_highlighted(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_highlighted.is_none() {
+            self.color_highlighted = Some(materials.add(
+                Color::rgb(0x1c as f32 / 255., 0x49 as f32 / 255., 0x66 as f32 / 255.).into(),
+            ));
+        }
+        self.color_highlighted.as_ref().unwrap().clone()
     }
 
     pub fn get_game_handles(
