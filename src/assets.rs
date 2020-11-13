@@ -48,6 +48,10 @@ pub struct GameHandles {
 }
 
 impl AssetHandles {
+    pub fn get_planet_names(&self) -> Vec<&'static str> {
+        include!("../assets/star_names.in").to_vec()
+    }
+
     pub fn get_panel_handle(
         &mut self,
         assets: &AssetServer,

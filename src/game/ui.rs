@@ -3,18 +3,68 @@ use tracing::info;
 
 use super::*;
 
+pub struct UiSelected;
+pub struct UiHighlighted;
+
 pub fn setup(
     commands: &mut Commands,
     (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
     asset_server: Res<AssetServer>,
     mut nine_patches: ResMut<Assets<bevy_ninepatch::NinePatchBuilder<()>>>,
     mut asset_handles: ResMut<crate::AssetHandles>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading");
 
+        let material_none = materials.add(Color::NONE.into());
+
         let inner_content = commands
-            .spawn(NodeComponents::default())
+            .spawn(NodeComponents {
+                style: Style {
+                    flex_direction: FlexDirection::ColumnReverse,
+                    size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                    ..Default::default()
+                },
+                draw: Draw {
+                    is_transparent: true,
+                    ..Default::default()
+                },
+                material: material_none.clone(),
+                ..Default::default()
+            })
+            .with_children(|parent| {
+                parent
+                    .spawn(NodeComponents {
+                        style: Style {
+                            flex_direction: FlexDirection::ColumnReverse,
+                            size: Size::new(Val::Percent(100.), Val::Percent(50.)),
+                            ..Default::default()
+                        },
+                        draw: Draw {
+                            is_transparent: true,
+                            ..Default::default()
+                        },
+                        material: material_none.clone(),
+                        ..Default::default()
+                    })
+                    .with(UiSelected);
+                parent
+                    .spawn(NodeComponents {
+                        style: Style {
+                            flex_direction: FlexDirection::ColumnReverse,
+                            size: Size::new(Val::Percent(100.), Val::Percent(50.)),
+                            ..Default::default()
+                        },
+                        draw: Draw {
+                            is_transparent: true,
+                            ..Default::default()
+                        },
+                        material: material_none.clone(),
+                        ..Default::default()
+                    })
+                    .with(UiHighlighted);
+            })
             .current_entity()
             .unwrap();
         let panel_style = Style {
@@ -307,6 +357,98 @@ pub fn interaction(
                 .current_entity()
                 .unwrap();
             commands.push_children(*entity, &[interacted]);
+        }
+    }
+}
+
+pub fn ui_update(
+    commands: &mut Commands,
+    game: Res<Game>,
+    mut asset_handles: ResMut<crate::AssetHandles>,
+    assets: Res<AssetServer>,
+    (mut event_reader, events): (
+        Local<EventReader<InteractionEvent>>,
+        Res<Events<InteractionEvent>>,
+    ),
+    query_planet: Query<&Planet>,
+    query_moon: Query<&Moon>,
+    query_ui_selected: Query<(Entity, Option<&Children>), With<UiSelected>>,
+    query_ui_highlighted: Query<(Entity, Option<&Children>), With<UiHighlighted>>,
+) {
+    let font = asset_handles.get_font_main_handle(&assets);
+    for event in event_reader.iter(&events) {
+        let (moon_entity, ui_target_entity, children) = match event {
+            InteractionEvent::Clicked(None) => {
+                if let Some((ui_entity, children)) = query_ui_selected.iter().next() {
+                    (None, ui_entity, children)
+                } else {
+                    continue;
+                }
+            }
+            InteractionEvent::Clicked(Some(moon_entity)) => {
+                if let Some((_ui_entity, children)) = query_ui_highlighted.iter().next() {
+                    if let Some(children) = children {
+                        for child in children.iter() {
+                            commands.despawn_recursive(*child);
+                        }
+                    }
+                }
+                let (ui_entity, children) = query_ui_selected.iter().next().unwrap();
+                (Some(moon_entity), ui_entity, children)
+            }
+            InteractionEvent::Hovered(None) => {
+                if let Some((ui_entity, children)) = query_ui_highlighted.iter().next() {
+                    (None, ui_entity, children)
+                } else {
+                    continue;
+                }
+            }
+            InteractionEvent::Hovered(Some(moon_entity)) => {
+                let (ui_entity, children) = query_ui_highlighted.iter().next().unwrap();
+                if let Some(selected) = game.selected {
+                    if *moon_entity == selected {
+                        (None, ui_entity, children)
+                    } else {
+                        (Some(moon_entity), ui_entity, children)
+                    }
+                } else {
+                    (Some(moon_entity), ui_entity, children)
+                }
+            }
+        };
+        if let Some(children) = children {
+            for child in children.iter() {
+                commands.despawn_recursive(*child);
+            }
+        }
+
+        if let Some(moon_entity) = moon_entity {
+            let moon = query_moon.get(*moon_entity).unwrap();
+            let planet = query_planet.get(moon.planet).unwrap();
+            let moon_name = format!("{} {}", planet.name, roman::to(moon.index).unwrap());
+            let ui_name = commands
+                .spawn(TextComponents {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(30.),
+                            ..Default::default()
+                        },
+                        align_self: AlignSelf::Center,
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: moon_name,
+                        font: font.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT_DARK,
+                            font_size: 30.,
+                        },
+                    },
+                    ..Default::default()
+                })
+                .current_entity()
+                .unwrap();
+            commands.push_children(ui_target_entity, &[ui_name]);
         }
     }
 }

@@ -32,11 +32,21 @@ impl bevy::app::Plugin for Plugin {
             .add_system(keyboard_input_system.system())
             .add_system(ui::setup.system())
             .add_system(ui::interaction.system())
+            .add_system(ui::ui_update.system())
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system.system())
             .add_system(setup_game.system())
             .add_system(setup_finish.system())
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
     }
+}
+
+pub struct Planet {
+    pub name: String,
+}
+
+pub struct Moon {
+    pub index: i32,
+    pub planet: Entity,
 }
 
 fn setup_game(
@@ -73,6 +83,13 @@ fn setup_game(
                     .angvel(rand::thread_rng().gen_range(-1., 1.) * 0.2),
             )
             .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
+            .with(Planet {
+                name: asset_handles
+                    .get_planet_names()
+                    .choose(&mut rand::thread_rng())
+                    .unwrap()
+                    .to_string(),
+            })
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
@@ -136,6 +153,10 @@ fn setup_game(
                 .with(ui::Interaction::None)
                 .with(ui::InteractionBox {
                     size: Vec2::new(30., 30.),
+                })
+                .with(Moon {
+                    index: i + 1,
+                    planet,
                 })
                 .with(ScreenTag);
         }
