@@ -108,18 +108,6 @@ lazy_static! {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings: Settings = config::read_from("settings.conf")?;
 
-    let _subscriber = if cfg!(debug_assertions) {
-        tracing_subscriber::fmt()
-        .with_env_filter(
-             "info,bevy_log_diagnostic=debug,kmanb=debug,gfx_backend_metal=warn,wgpu_core=warn,bevy_render=warn",
-            )
-            .init();
-    } else {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::WARN)
-            .init();
-    };
-
     let mut builder = App::build();
 
     builder
@@ -139,6 +127,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .add_resource(settings)
         .add_resource(ClearColor(Color::rgb(0., 0., 0.01)));
+
+    if cfg!(debug_assertions) {
+        builder.add_resource(bevy::log::LogSettings {
+            level: bevy::log::Level::INFO,
+            filter:
+                "bevy_log_diagnostic=debug,gfx_backend_metal=warn,wgpu_core=warn,bevy_render=warn"
+                    .to_string(),
+        });
+    } else {
+        builder.add_resource(bevy::log::LogSettings {
+            level: bevy::log::Level::WARN,
+            filter: "".to_string(),
+        });
+    }
 
     builder.add_plugins_with(DefaultPlugins, |group| {
         #[cfg(feature = "bundled")]
@@ -231,8 +233,8 @@ fn general_setup(
 ) {
     configuration.gravity = bevy_rapier2d::rapier::math::Vector::new(0., 0.);
 
-    commands.spawn(Camera2dComponents::default());
-    commands.spawn(UiCameraComponents::default());
+    commands.spawn(Camera2dBundle::default());
+    commands.spawn(UiCameraBundle::default());
 }
 
 fn handle_state(game_screen: Res<crate::GameScreen>, mut app_exit_events: ResMut<Events<AppExit>>) {

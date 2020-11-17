@@ -47,7 +47,7 @@ fn setup(
         let texture_handle = asset_server.load("logo.png");
 
         commands
-            .spawn(SpriteComponents {
+            .spawn(SpriteBundle {
                 material: materials.add(texture_handle.into()),
                 ..Default::default()
             })

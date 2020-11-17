@@ -68,7 +68,7 @@ fn setup_game(
         let shift_left = -200.;
 
         commands
-            .spawn(SpriteComponents {
+            .spawn(SpriteBundle {
                 transform: Transform {
                     scale: Vec3::splat(0.10),
                     translation: Vec3::new(shift_left, 0., crate::Z_PLANET),
@@ -112,7 +112,7 @@ fn setup_game(
                 crate::space::target_position(time.seconds_since_startup as f32, &orbiter);
 
             commands
-                .spawn(SpriteComponents {
+                .spawn(SpriteBundle {
                     transform: Transform {
                         scale: Vec3::splat(0.10),
                         translation: Vec3::new(

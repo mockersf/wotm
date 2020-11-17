@@ -42,7 +42,7 @@ fn setup(
         let font_sub: Handle<Font> = asset_handles.get_font_sub_handle(&asset_server);
 
         commands
-            .spawn(NodeComponents {
+            .spawn(NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
                     position: Rect::<Val> {
@@ -62,7 +62,7 @@ fn setup(
                 ..Default::default()
             })
             .with_children(|title_parent| {
-                title_parent.spawn(TextComponents {
+                title_parent.spawn(TextBundle {
                     style: Style {
                         size: Size {
                             height: Val::Px(150. / 2.),
@@ -76,11 +76,12 @@ fn setup(
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT,
                             font_size: 150.0 / 2.,
+                            ..Default::default()
                         },
                     },
                     ..Default::default()
                 });
-                title_parent.spawn(TextComponents {
+                title_parent.spawn(TextBundle {
                     style: Style {
                         size: Size {
                             height: Val::Px(40. / 2.),
@@ -99,6 +100,7 @@ fn setup(
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT_DIM,
                             font_size: 40.0 / 2.,
+                            ..Default::default()
                         },
                     },
                     ..Default::default()

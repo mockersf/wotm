@@ -163,7 +163,7 @@ fn spawn_ship(
             translation.set_z(crate::Z_SHIP);
 
             commands
-                .spawn(SpriteComponents {
+                .spawn(SpriteBundle {
                     transform: Transform {
                         translation,
                         scale: Vec3::splat(spawn.scale * 0.05),

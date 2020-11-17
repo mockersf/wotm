@@ -116,7 +116,7 @@ fn setup(
             ))
             .with_children(|moon_holder| {
                 moon_holder
-                    .spawn(SpriteComponents {
+                    .spawn(SpriteBundle {
                         transform: Transform {
                             scale: Vec3::splat(0.25),
                             ..Default::default()
@@ -138,7 +138,7 @@ fn setup(
             .with(ScreenTag);
 
         commands
-            .spawn(NodeComponents {
+            .spawn(NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
                     position: Rect::<Val> {
@@ -158,7 +158,7 @@ fn setup(
                 ..Default::default()
             })
             .with_children(|title_parent| {
-                title_parent.spawn(TextComponents {
+                title_parent.spawn(TextBundle {
                     style: Style {
                         size: Size {
                             height: Val::Px(75.),
@@ -172,6 +172,7 @@ fn setup(
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT,
                             font_size: 75.,
+                            ..Default::default()
                         },
                     },
                     ..Default::default()
@@ -202,7 +203,7 @@ fn setup(
             .iter()
             .enumerate()
             .map(|(i, button_item)| {
-                commands.spawn(NodeComponents {
+                commands.spawn(NodeBundle {
                     style: Style {
                         margin: Rect {
                             left: Val::Px(button_shift_start + i as f32 * button_shift),
@@ -232,7 +233,7 @@ fn setup(
                     25.,
                 );
                 commands
-                    .spawn(ImageComponents {
+                    .spawn(ImageBundle {
                         style: Style {
                             size: Size {
                                 height: Val::Px(17.),
@@ -259,7 +260,7 @@ fn setup(
             })
             .collect::<Vec<_>>();
         let inner_content = commands
-            .spawn(NodeComponents {
+            .spawn(NodeBundle {
                 material: color_none,
                 style: Style {
                     flex_direction: FlexDirection::ColumnReverse,
@@ -276,7 +277,7 @@ fn setup(
         commands.push_children(inner_content, buttons.as_slice());
 
         commands
-            .spawn(bevy_ninepatch::NinePatchComponents {
+            .spawn(bevy_ninepatch::NinePatchBundle {
                 style: panel_style.clone(),
                 nine_patch_data: bevy_ninepatch::NinePatchData::with_single_content(
                     panel_handles.1,

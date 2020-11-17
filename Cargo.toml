@@ -25,7 +25,8 @@ bevy_diagnostic_counter = { git = "https://github.com/mockersf/bevy_extra" }
 
 # bevy_rapier2d = "0.5"
 bevy_rapier2d = { git = "https://github.com/vleue/bevy_rapier" }
-bevy_prototype_lyon = "0.1.3"
+# bevy_prototype_lyon = "0.1.3"
+bevy_prototype_lyon = { git = "https://github.com/vleue/bevy_prototype_lyon" }
 
 
 config = { path = "crates/config" }

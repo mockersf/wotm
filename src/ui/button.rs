@@ -38,7 +38,7 @@ impl Button {
         T: Into<String> + Send + Sync + Copy + 'static,
     {
         let button_entity = commands
-            .spawn(ButtonComponents {
+            .spawn(ButtonBundle {
                 style: Style {
                     size: Size::new(Val::Px(width), Val::Px(height)),
                     margin,
@@ -58,7 +58,7 @@ impl Button {
             .unwrap();
 
         let button_content = commands
-            .spawn(TextComponents {
+            .spawn(TextBundle {
                 style: Style {
                     size: Size {
                         height: Val::Px(font_size),
@@ -75,6 +75,7 @@ impl Button {
                     style: TextStyle {
                         font_size,
                         color: crate::ui::ColorScheme::TEXT_DARK,
+                        ..Default::default()
                     },
                 },
                 focus_policy: bevy::ui::FocusPolicy::Pass,
@@ -85,7 +86,7 @@ impl Button {
             .unwrap();
 
         let patch_entity = commands
-            .spawn(bevy_ninepatch::NinePatchComponents::<()> {
+            .spawn(bevy_ninepatch::NinePatchBundle::<()> {
                 style: Style {
                     margin: Rect::all(Val::Auto),
                     size: Size::new(Val::Px(width), Val::Px(height)),
@@ -104,7 +105,7 @@ impl Button {
             .unwrap();
 
         let interaction_overlay = commands
-            .spawn(ImageComponents {
+            .spawn(ImageBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
                     margin: Rect::all(Val::Auto),

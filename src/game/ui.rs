@@ -20,7 +20,7 @@ pub fn setup(
         let material_none = materials.add(Color::NONE.into());
 
         let inner_content = commands
-            .spawn(NodeComponents {
+            .spawn(NodeBundle {
                 style: Style {
                     flex_direction: FlexDirection::ColumnReverse,
                     size: Size::new(Val::Percent(100.), Val::Percent(100.)),
@@ -35,7 +35,7 @@ pub fn setup(
             })
             .with_children(|parent| {
                 parent
-                    .spawn(NodeComponents {
+                    .spawn(NodeBundle {
                         style: Style {
                             flex_direction: FlexDirection::ColumnReverse,
                             size: Size::new(Val::Percent(100.), Val::Percent(50.)),
@@ -50,7 +50,7 @@ pub fn setup(
                     })
                     .with(UiSelected);
                 parent
-                    .spawn(NodeComponents {
+                    .spawn(NodeBundle {
                         style: Style {
                             flex_direction: FlexDirection::ColumnReverse,
                             size: Size::new(Val::Percent(100.), Val::Percent(50.)),
@@ -86,7 +86,7 @@ pub fn setup(
 
         let panel_handles = asset_handles.get_panel_handle(&asset_server, &mut nine_patches);
         commands
-            .spawn(bevy_ninepatch::NinePatchComponents {
+            .spawn(bevy_ninepatch::NinePatchBundle {
                 style: panel_style.clone(),
                 nine_patch_data: bevy_ninepatch::NinePatchData::with_single_content(
                     panel_handles.1,
@@ -427,7 +427,7 @@ pub fn ui_update(
             let planet = query_planet.get(moon.planet).unwrap();
             let moon_name = format!("{} {}", planet.name, roman::to(moon.index).unwrap());
             let ui_name = commands
-                .spawn(TextComponents {
+                .spawn(TextBundle {
                     style: Style {
                         size: Size {
                             height: Val::Px(30.),
@@ -442,6 +442,7 @@ pub fn ui_update(
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT_DARK,
                             font_size: 30.,
+                            ..Default::default()
                         },
                     },
                     ..Default::default()
