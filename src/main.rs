@@ -30,8 +30,8 @@ struct Settings {
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
-            width: 2560,
-            height: 1600,
+            width: 1280,
+            height: 720,
             fullscreen: false,
         }
     }
@@ -114,8 +114,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // resources
         .add_resource(WindowDescriptor {
             title: "wotm".to_string(),
-            // width: settings.width,
-            // height: settings.height,
+            width: settings.width,
+            height: settings.height,
             vsync: true,
             resizable: false,
             mode: if settings.fullscreen {
@@ -123,11 +123,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 WindowMode::Windowed
             },
+            #[cfg(target_arch = "wasm32")]
+            canvas: Some("#bevy-canvas".to_string()),
             ..Default::default()
         })
         .add_resource(settings)
         .add_resource(ClearColor(Color::rgb(0., 0., 0.01)));
 
+    #[cfg(not(target_arch = "wasm32"))]
     if cfg!(debug_assertions) {
         builder.add_resource(bevy::log::LogSettings {
             level: bevy::log::Level::INFO,
@@ -150,6 +153,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "bundled"))]
         group
     });
+
+    #[cfg(target_arch = "wasm32")]
+    builder.add_plugin(bevy_webgl2::WebGL2Plugin::default());
 
     builder
         .add_plugin(::bevy_easings::EasingsPlugin)

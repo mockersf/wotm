@@ -7,7 +7,6 @@ license = "MIT"
 publish = false
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy" }
 serde = { version = "1.0", features = [ "derive" ] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
@@ -28,10 +27,15 @@ bevy_rapier2d = { git = "https://github.com/vleue/bevy_rapier" }
 # bevy_prototype_lyon = "0.1.3"
 bevy_prototype_lyon = { git = "https://github.com/vleue/bevy_prototype_lyon" }
 
-
 config = { path = "crates/config" }
 asset_io = { path = "crates/asset_io", optional = true }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = ["bevy_winit", "render", "png"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = ["bevy_winit", "render", "png"] }
+bevy_webgl2 = {git = "https://github.com/mrk-its/bevy_webgl2"}
 
 [features]
 default = ["bundled", "bevy/bevy_wgpu" ]

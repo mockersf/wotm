@@ -46,6 +46,7 @@ impl bevy::app::Plugin for Plugin {
 enum MenuButton {
     NewGame,
     About,
+    #[cfg(not(target_arch = "wasm32"))]
     Quit,
 }
 
@@ -54,10 +55,18 @@ impl Into<String> for MenuButton {
         match self {
             MenuButton::NewGame => "New Game".to_string(),
             MenuButton::About => "About".to_string(),
+            #[cfg(not(target_arch = "wasm32"))]
             MenuButton::Quit => "Quit".to_string(),
         }
     }
 }
+
+const MENU_BUTTONS: &[MenuButton] = &[
+    MenuButton::NewGame,
+    MenuButton::About,
+    #[cfg(not(target_arch = "wasm32"))]
+    MenuButton::Quit,
+];
 
 struct RotateOnSelf {
     duration: f64,
@@ -199,7 +208,7 @@ fn setup(
 
         let button_shift_start = 15.;
         let button_shift = 45.;
-        let buttons = &[MenuButton::NewGame, MenuButton::About, MenuButton::Quit]
+        let buttons = MENU_BUTTONS
             .iter()
             .enumerate()
             .map(|(i, button_item)| {
@@ -360,7 +369,7 @@ fn keyboard_input_system(
             screen.menu_selected = Some(
                 screen
                     .menu_selected
-                    .map(|i| i32::min(2, i + 1))
+                    .map(|i| i32::min(MENU_BUTTONS.len() as i32 - 1, i + 1))
                     .unwrap_or(0),
             );
         } else if keyboard_input.just_released(KeyCode::Up) {
@@ -399,6 +408,7 @@ fn button_system(
     for (_button, interaction, button_id) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Clicked => match button_id.0 {
+                #[cfg(not(target_arch = "wasm32"))]
                 MenuButton::Quit => game_screen.current_screen = crate::Screen::Exit,
                 MenuButton::About => game_screen.current_screen = crate::Screen::About,
                 MenuButton::NewGame => game_screen.current_screen = crate::Screen::Game,
@@ -406,6 +416,7 @@ fn button_system(
             Interaction::Hovered => match button_id.0 {
                 MenuButton::NewGame => screen.menu_selected = Some(0),
                 MenuButton::About => screen.menu_selected = Some(1),
+                #[cfg(not(target_arch = "wasm32"))]
                 MenuButton::Quit => screen.menu_selected = Some(2),
             },
             Interaction::None => screen.menu_selected = None,

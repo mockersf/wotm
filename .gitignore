@@ -1,3 +1,5 @@
 /target
 /wotm.app
 /tmp
+/wasm/*.js
+/wasm/*.wasm
