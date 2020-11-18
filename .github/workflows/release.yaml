@@ -58,6 +58,9 @@ jobs:
     env:
       channel: macos
     steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
       - name: Download last-build
         uses: actions/download-artifact@v1
         with:
@@ -164,6 +167,9 @@ jobs:
     env:
       channel: windows
     steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
       - name: Download last-build
         uses: actions/download-artifact@v1
         with:
@@ -198,6 +204,9 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ env.channel }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install cargo wasm
+        run: |
+          cargo install wasm-bindgen-cli
       - name: Build and release
         run: |
           cargo build --release --target wasm32-unknown-unknown --no-default-features --features="bundled"
