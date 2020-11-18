@@ -18,9 +18,9 @@ pub struct Plugin;
 impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(Screen::default())
-            .add_system(input_system.system())
-            .add_system(setup.system())
-            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
+            .add_system(input_system)
+            .add_system(setup)
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
 

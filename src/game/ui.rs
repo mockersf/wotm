@@ -144,14 +144,14 @@ pub fn focus_system(
 ) {
     if let Some(cursor_moved) = state.cursor_moved_event_reader.latest(&cursor_moved_events) {
         state.cursor_position = Vec2::new(
-            cursor_moved.position.x() - wnds.get_primary().unwrap().width() as f32 / 2.,
-            cursor_moved.position.y() - wnds.get_primary().unwrap().height() as f32 / 2.,
+            cursor_moved.position.x - wnds.get_primary().unwrap().width() as f32 / 2.,
+            cursor_moved.position.y - wnds.get_primary().unwrap().height() as f32 / 2.,
         );
     }
     if let Some(touch) = touches_input.get_pressed(0) {
         state.cursor_position = Vec2::new(
-            touch.position.x() - wnds.get_primary().unwrap().width() as f32 / 2.,
-            touch.position.y() - wnds.get_primary().unwrap().height() as f32 / 2.,
+            touch.position.x - wnds.get_primary().unwrap().width() as f32 / 2.,
+            touch.position.y - wnds.get_primary().unwrap().height() as f32 / 2.,
         );
     }
 
@@ -180,8 +180,8 @@ pub fn focus_system(
                 let min = ui_position - extents;
                 let max = ui_position + extents;
                 // if the current cursor position is within the bounds of the node, consider it for clicking
-                if (min.x()..max.x()).contains(&state.cursor_position.x())
-                    && (min.y()..max.y()).contains(&state.cursor_position.y())
+                if (min.x..max.x).contains(&state.cursor_position.x)
+                    && (min.y..max.y).contains(&state.cursor_position.y)
                 {
                     Some((entity, interaction))
                 } else {

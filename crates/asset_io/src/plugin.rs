@@ -28,7 +28,7 @@ impl Plugin for InMemoryAssetPlugin {
         .register_property::<bevy::asset::HandleId>()
         .add_system_to_stage(
             bevy::app::stage::PRE_UPDATE,
-            bevy::asset::free_unused_assets_system.system(),
+            bevy::asset::free_unused_assets_system,
         );
     }
 }

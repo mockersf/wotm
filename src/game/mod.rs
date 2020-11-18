@@ -29,14 +29,14 @@ impl bevy::app::Plugin for Plugin {
             .add_event::<GameEvents>()
             .add_event::<InterestingEvent>()
             .add_event::<ui::InteractionEvent>()
-            .add_system(keyboard_input_system.system())
-            .add_system(ui::setup.system())
-            .add_system(ui::interaction.system())
-            .add_system(ui::ui_update.system())
-            .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system.system())
-            .add_system(setup_game.system())
-            .add_system(setup_finish.system())
-            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
+            .add_system(keyboard_input_system)
+            .add_system(ui::setup)
+            .add_system(ui::interaction)
+            .add_system(ui::ui_update)
+            .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
+            .add_system(setup_game)
+            .add_system(setup_finish)
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
 

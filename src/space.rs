@@ -84,8 +84,7 @@ impl SpawnShip {
 pub struct Plugin;
 impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(spawn_ship.system())
-            .add_system(orbite_around.system());
+        app.add_system(spawn_ship).add_system(orbite_around);
     }
 }
 pub struct SpawnShipProgress;
@@ -160,7 +159,7 @@ fn spawn_ship(
             );
 
             let mut translation = global_transform.translation.clone();
-            translation.set_z(crate::Z_SHIP);
+            translation.z = crate::Z_SHIP;
 
             commands
                 .spawn(SpriteBundle {
@@ -174,8 +173,8 @@ fn spawn_ship(
                 })
                 .with(
                     bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().translation(
-                        global_transform.translation.x(),
-                        global_transform.translation.y(),
+                        global_transform.translation.x,
+                        global_transform.translation.y,
                     ),
                 )
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
@@ -218,8 +217,8 @@ fn orbite_around(
         let (linvel, rot) = crate::space::go_from_to_rapier(
             body.position.translation.vector
                 - bevy_rapier2d::rapier::math::Vector::new(
-                    center_transform.translation.x(),
-                    center_transform.translation.y(),
+                    center_transform.translation.x,
+                    center_transform.translation.y,
                 ),
             target_position(time.seconds_since_startup as f32, orbiter),
         );

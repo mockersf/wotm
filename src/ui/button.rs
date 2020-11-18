@@ -179,6 +179,6 @@ impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
         app.init_resource::<ButtonMaterials>()
             .add_asset::<Button>()
-            .add_system(button_effect.system());
+            .add_system(button_effect);
     }
 }

@@ -24,10 +24,10 @@ pub struct Plugin;
 impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(Screen::default())
-            .add_system(setup.system())
-            .add_system(done.system())
-            .add_system(animate_logo.system())
-            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
+            .add_system(setup)
+            .add_system(done)
+            .add_system(animate_logo)
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
 
@@ -88,14 +88,14 @@ fn animate_logo(mut query: Query<(&Timer, &mut Transform), With<ScreenTag>>) {
     for (timer, mut transform) in query.iter_mut() {
         if timer.finished {
             let translation = transform.translation;
-            if translation.x() != 0. || translation.y() != 0. {
+            if translation.x != 0. || translation.y != 0. {
                 *transform = Transform::identity();
                 continue;
             }
 
             let scale = transform.scale;
             // `scale.0 != 1.` for floating numbers
-            if (scale.x() - 1.) > 0.01 {
+            if (scale.x - 1.) > 0.01 {
                 *transform = Transform::identity();
                 continue;
             }

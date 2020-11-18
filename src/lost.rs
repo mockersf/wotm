@@ -22,11 +22,11 @@ impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(Screen::default())
             .init_resource::<GameStats>()
-            .add_system(input_system.system())
-            .add_system(setup.system())
-            .add_system(update_stats.system())
-            .add_system(hurt_animate_sprite_system.system())
-            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
+            .add_system(input_system)
+            .add_system(setup)
+            .add_system(update_stats)
+            .add_system(hurt_animate_sprite_system)
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
 

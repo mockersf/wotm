@@ -177,8 +177,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     builder
         // game management
-        .add_startup_system(general_setup.system())
-        .add_system(handle_state.system())
+        .add_startup_system(general_setup)
+        .add_system(handle_state)
         .add_resource(GameScreen::default())
         .add_stage_after(bevy::app::stage::UPDATE, custom_stage::TEAR_DOWN)
         // ui

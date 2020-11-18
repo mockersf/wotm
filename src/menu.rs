@@ -29,16 +29,16 @@ pub struct Plugin;
 impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(Screen::default())
-            .add_system(keyboard_input_system.system())
-            .add_system(setup.system())
-            .add_system(button_system.system())
-            .add_system(display_menu_item_selector.system())
-            .add_system(rotate_on_self.system())
-            .add_system(go_away.system())
-            .add_system(despawn_gone_ships.system())
-            .add_system(menu_ship_behaviour.system())
-            .add_system(print_events.system())
-            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down.system());
+            .add_system(keyboard_input_system)
+            .add_system(setup)
+            .add_system(button_system)
+            .add_system(display_menu_item_selector)
+            .add_system(rotate_on_self)
+            .add_system(go_away)
+            .add_system(despawn_gone_ships)
+            .add_system(menu_ship_behaviour)
+            .add_system(print_events)
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
 
