@@ -2,7 +2,6 @@
 #![windows_subsystem = "windows"]
 
 use bevy::{app::AppExit, prelude::*, window::WindowMode};
-use bevy_rapier2d::physics::RapierPhysicsPlugin;
 use serde::{Deserialize, Serialize};
 
 mod assets;
@@ -186,7 +185,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugin(crate::ui::button::Plugin)
         .add_resource(AssetHandles::default())
         // collisions
-        .add_plugin(RapierPhysicsPlugin)
+        .add_plugin(bevy_rapier2d::physics::RapierPhysicsPlugin)
         // screens
         .add_plugin(crate::splash::Plugin)
         .add_plugin(crate::menu::Plugin)
