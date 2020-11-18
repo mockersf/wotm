@@ -54,6 +54,8 @@ fn setup_game(
     (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
+    mats: Res<Assets<ColorMaterial>>,
+    texts: Res<Assets<Texture>>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
@@ -74,7 +76,7 @@ fn setup_game(
                     translation: Vec3::new(shift_left, 0., crate::Z_PLANET),
                     ..Default::default()
                 },
-                material: planet.clone(),
+                material: planet.0.clone(),
                 ..Default::default()
             })
             .with(
@@ -89,6 +91,10 @@ fn setup_game(
                     .choose(&mut rand::thread_rng())
                     .unwrap()
                     .to_string(),
+            })
+            .with(ui::Interaction::None)
+            .with(ui::InteractionBox {
+                radius: planet.1 as f32 / 10. + 5.,
             })
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
@@ -151,9 +157,7 @@ fn setup_game(
                     p.spawn((crate::space::SpawnShipProgress,));
                 })
                 .with(ui::Interaction::None)
-                .with(ui::InteractionBox {
-                    size: Vec2::new(30., 30.),
-                })
+                .with(ui::InteractionBox { radius: 30. })
                 .with(Moon {
                     index: i + 1,
                     planet,

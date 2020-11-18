@@ -115,7 +115,7 @@ pub enum Interaction {
 }
 
 pub struct InteractionBox {
-    pub size: Vec2,
+    pub radius: f32,
 }
 
 pub struct Interacted;
@@ -174,14 +174,12 @@ pub fn focus_system(
         let moused_over_z_sorted_nodes = node_query
             .iter_mut()
             .filter_map(|(entity, node, global_transform, interaction)| {
-                let position = global_transform.translation;
-                let ui_position = position.truncate();
-                let extents = node.size / 2.0;
-                let min = ui_position - extents;
-                let max = ui_position + extents;
                 // if the current cursor position is within the bounds of the node, consider it for clicking
-                if (min.x..max.x).contains(&state.cursor_position.x)
-                    && (min.y..max.y).contains(&state.cursor_position.y)
+                if global_transform
+                    .translation
+                    .truncate()
+                    .distance(state.cursor_position)
+                    < node.radius
                 {
                     Some((entity, interaction))
                 } else {
@@ -249,7 +247,10 @@ pub fn interaction(
         Local<EventReader<InteractionEvent>>,
         Res<Events<InteractionEvent>>,
     ),
-    query_body: Query<&bevy_rapier2d::physics::RigidBodyHandleComponent>,
+    query_body: Query<(
+        &bevy_rapier2d::physics::RigidBodyHandleComponent,
+        &InteractionBox,
+    )>,
     query_children: Query<&Children>,
     query_interacted: Query<Entity, With<Interacted>>,
 ) {
@@ -323,10 +324,10 @@ pub fn interaction(
             }
         };
 
-        if let Ok(rigid_body) = query_body.get(*entity) {
+        if let Ok((rigid_body, interaction_box)) = query_body.get(*entity) {
             let body = bodies.get(rigid_body.handle()).unwrap();
 
-            let radius = 280.;
+            let radius = interaction_box.radius * 10. - 20.;
             let start_x =
                 (-body.position.rotation.angle() + std::f32::consts::FRAC_PI_2).cos() * radius;
             let start_y =
@@ -423,33 +424,60 @@ pub fn ui_update(
         }
 
         if let Some(moon_entity) = moon_entity {
-            let moon = query_moon.get(*moon_entity).unwrap();
-            let planet = query_planet.get(moon.planet).unwrap();
-            let moon_name = format!("{} {}", planet.name, roman::to(moon.index).unwrap());
-            let ui_name = commands
-                .spawn(TextBundle {
-                    style: Style {
-                        size: Size {
-                            height: Val::Px(30.),
+            if let Ok(planet) = query_planet.get(*moon_entity) {
+                let ui_name = commands
+                    .spawn(TextBundle {
+                        style: Style {
+                            size: Size {
+                                height: Val::Px(30.),
+                                ..Default::default()
+                            },
+                            align_self: AlignSelf::Center,
                             ..Default::default()
                         },
-                        align_self: AlignSelf::Center,
+                        text: Text {
+                            value: planet.name.clone(),
+                            font: font.clone(),
+                            style: TextStyle {
+                                color: crate::ui::ColorScheme::TEXT_DARK,
+                                font_size: 30.,
+                                ..Default::default()
+                            },
+                        },
                         ..Default::default()
-                    },
-                    text: Text {
-                        value: moon_name,
-                        font: font.clone(),
-                        style: TextStyle {
-                            color: crate::ui::ColorScheme::TEXT_DARK,
-                            font_size: 30.,
+                    })
+                    .current_entity()
+                    .unwrap();
+                commands.push_children(ui_target_entity, &[ui_name]);
+            } else {
+                let moon = query_moon.get(*moon_entity).unwrap();
+                let planet = query_planet.get(moon.planet).unwrap();
+                let moon_name = format!("{} {}", planet.name, roman::to(moon.index).unwrap());
+                let ui_name = commands
+                    .spawn(TextBundle {
+                        style: Style {
+                            size: Size {
+                                height: Val::Px(30.),
+                                ..Default::default()
+                            },
+                            align_self: AlignSelf::Center,
                             ..Default::default()
                         },
-                    },
-                    ..Default::default()
-                })
-                .current_entity()
-                .unwrap();
-            commands.push_children(ui_target_entity, &[ui_name]);
+                        text: Text {
+                            value: moon_name,
+                            font: font.clone(),
+                            style: TextStyle {
+                                color: crate::ui::ColorScheme::TEXT_DARK,
+                                font_size: 30.,
+                                ..Default::default()
+                            },
+                        },
+                        ..Default::default()
+                    })
+                    .current_entity()
+                    .unwrap();
+                commands.push_children(ui_target_entity, &[ui_name]);
+            }
         }
     }
 }
