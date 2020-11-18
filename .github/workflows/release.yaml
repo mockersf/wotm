@@ -68,7 +68,7 @@ jobs:
           CHANNEL: ${{ env.channel }}
           ITCH_GAME: ${{ env.itch_name }}
           ITCH_USER: vleue
-          PACKAGE: ${{ env.binary }}.dmg
+          PACKAGE: macos-build/${{ env.binary }}.dmg
           VERSION: ${{ steps.get_version.outputs.VERSION }}
 
   build-linux:
@@ -174,7 +174,7 @@ jobs:
           CHANNEL: ${{ env.channel }}
           ITCH_GAME: ${{ env.itch_name }}
           ITCH_USER: vleue
-          PACKAGE: ${{ env.binary }}.zip
+          PACKAGE: windows-build/${{ env.binary }}.zip
           VERSION: ${{ steps.get_version.outputs.VERSION }}
 
   build-wasm:
