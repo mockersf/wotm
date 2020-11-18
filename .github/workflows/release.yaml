@@ -5,40 +5,15 @@ on:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+*"
 
+env:
+  binary: wotm
+  itch_name: wotm
+
 jobs:
-  #   build-macOS:
-  #     runs-on: macOS-latest
-
-  #     steps:
-  #       - name: Get the version
-  #         id: get_version
-  #         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
-  #       - uses: actions/checkout@v2
-  #       - uses: actions-rs/toolchain@v1
-  #         with:
-  #           toolchain: stable
-  #           override: true
-  #       - name: Build and release
-  #         run: |
-  #           export CFLAGS="-fno-stack-check"
-  #           export MACOSX_DEPLOYMENT_TARGET="10.9"
-  #           cargo build --release
-  #           mkdir -p wotm.app/Contents/MacOS
-  #           cp target/release/wotm wotm.app/Contents/MacOS/
-  #           strip wotm.app/Contents/MacOS/wotm
-  #           hdiutil create -fs HFS+ -volname "wotm" -srcfolder wotm.app wotm.dmg
-  #       - name: Upload binaries to release
-  #         uses: svenstaro/upload-release-action@v2
-  #         with:
-  #           repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #           file: wotm.dmg
-  #           asset_name: wotm-macOS-$VERSION.dmg
-  #           tag: ${{ github.ref }}
-  #           overwrite: true
-
-  build-linux:
-    runs-on: ubuntu-latest
-
+  build-macOS:
+    runs-on: macOS-latest
+    env:
+      channel: macos
     steps:
       - name: Get the version
         id: get_version
@@ -48,47 +23,172 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ env.channel }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build and release
+        run: |
+          export CFLAGS="-fno-stack-check"
+          export MACOSX_DEPLOYMENT_TARGET="10.9"
+          cargo build --release
+          mkdir -p ${{ env.binary }}.app/Contents/MacOS
+          cp target/release/${{ env.binary }} ${{ env.binary }}.app/Contents/MacOS/
+          strip ${{ env.binary }}.app/Contents/MacOS/${{ env.binary }}
+          hdiutil create -fs HFS+ -volname "${{ env.binary }}" -srcfolder ${{ env.binary }}.app ${{ env.binary }}.dmg
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}.dmg
+          asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.VERSION }}.dmg
+          tag: ${{ github.ref }}
+          overwrite: true
+      - uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+          CHANNEL: ${{ env.channel }}
+          ITCH_GAME: ${{ env.itch_name }}
+          ITCH_USER: vleue
+          PACKAGE: ${{ env.binary }}.zip
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    env:
+      channel: linux
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ env.channel }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Dependencies
         run: sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
       - name: Build and release
         run: |
           cargo build --release
-          strip target/release/wotm
+          strip target/release/${{ env.binary }}
       - uses: papeloto/action-zip@v1
         with:
-          files: target/release/wotm
-          dest: wotm-linux.zip
+          files: target/release/${{ env.binary }}
+          dest: ${{ env.binary }}.zip
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: wotm-linux.zip
-          asset_name: wotm-linux-$VERSION.zip
+          file: ${{ env.binary }}.zip
+          asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.VERSION }}.zip
           tag: ${{ github.ref }}
           overwrite: true
-  # build-windows:
-  #   runs-on: windows-latest
-  #   steps:
-  #     - name: Get the version
-  #       id: get_version
-  #       run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
-  #     - uses: actions/checkout@v2
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: stable
-  #         override: true
-  #     - name: Build and release
-  #       run: |
-  #         cargo build --release
-  #     - uses: papeloto/action-zip@v1
-  #       with:
-  #         files: target/release/wotm.exe
-  #         dest: wotm-windows.zip
-  #     - name: Upload binaries to release
-  #       uses: svenstaro/upload-release-action@v2
-  #       with:
-  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #         file: wotm-windows.zip
-  #         asset_name: wotm-windows-${{ VERSION }}.zip
-  #         tag: ${{ github.ref }}
-  #         overwrite: true
+      - uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+          CHANNEL: ${{ env.channel }}
+          ITCH_GAME: ${{ env.itch_name }}
+          ITCH_USER: vleue
+          PACKAGE: ${{ env.binary }}.zip
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+
+  build-windows:
+    runs-on: windows-latest
+    env:
+      channel: windows
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ env.channel }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build and release
+        run: |
+          cargo build --release
+      - uses: papeloto/action-zip@v1
+        with:
+          files: target/release/${{ env.binary }}.exe
+          dest: ${{ env.binary }}.zip
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}.zip
+          asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.VERSION }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+      - uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+          CHANNEL: ${{ env.channel }}
+          ITCH_GAME: ${{ env.itch_name }}
+          ITCH_USER: vleue
+          PACKAGE: ${{ env.binary }}.zip
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+
+  build-wasm:
+    runs-on: linux-latest
+    env:
+      channel: wasm
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ env.channel }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build and release
+        run: |
+          cargo build --release --target wasm32-unknown-unknown --no-default-features --features="bundled"
+          wasm-bindgen --no-typescript --out-name ${{ env.binary }} --out-dir wasm --target web ${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/${{ env.binary }}.wasm
+      - uses: papeloto/action-zip@v1
+        with:
+          files: wasm
+          dest: ${{ env.binary }}.zip
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}.zip
+          asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.VERSION }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+      - uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+          CHANNEL: ${{ env.channel }}
+          ITCH_GAME: ${{ env.itch_name }}
+          ITCH_USER: vleue
+          PACKAGE: ${{ env.binary }}.zip
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
