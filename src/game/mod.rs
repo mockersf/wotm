@@ -54,8 +54,6 @@ fn setup_game(
     (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
-    mats: Res<Assets<ColorMaterial>>,
-    texts: Res<Assets<Texture>>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
