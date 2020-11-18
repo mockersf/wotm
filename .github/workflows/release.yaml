@@ -47,13 +47,28 @@ jobs:
           asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.VERSION }}.dmg
           tag: ${{ github.ref }}
           overwrite: true
+      - name: macOS artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: macos-build
+          path: ${{ env.binary }}.dmg
+  release-macos-itchio:
+    needs: ["build-macOS"]
+    runs-on: ubuntu-latest
+    env:
+      channel: macos
+    steps:
+      - name: Download last-build
+        uses: actions/download-artifact@v1
+        with:
+          name: macos-build
       - uses: josephbmanley/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: ${{ env.channel }}
           ITCH_GAME: ${{ env.itch_name }}
           ITCH_USER: vleue
-          PACKAGE: ${{ env.binary }}.zip
+          PACKAGE: ${{ env.binary }}.dmg
           VERSION: ${{ steps.get_version.outputs.VERSION }}
 
   build-linux:
@@ -138,6 +153,21 @@ jobs:
           asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.VERSION }}.zip
           tag: ${{ github.ref }}
           overwrite: true
+      - name: windows artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: windows-build
+          path: ${{ env.binary }}.zip
+  release-macos-itchio:
+    needs: ["build-windows"]
+    runs-on: ubuntu-latest
+    env:
+      channel: windows
+    steps:
+      - name: Download last-build
+        uses: actions/download-artifact@v1
+        with:
+          name: windows-build
       - uses: josephbmanley/butler-publish-itchio-action@master
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
