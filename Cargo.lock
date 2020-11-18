@@ -681,7 +681,7 @@ dependencies = [
 [[package]]
 name = "bevy_webgl2"
 version = "0.3.0"
-source = "git+https://github.com/vleue/bevy_webgl2#daa160467bc68d633907fa7c2f50edae9a2cc5ba"
+source = "git+https://github.com/mrk-its/bevy_webgl2#c179b01af218638e32ebef4775a87ea51227891d"
 dependencies = [
  "bevy",
  "cfg-if 1.0.0",
