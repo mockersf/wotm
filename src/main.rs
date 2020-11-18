@@ -137,11 +137,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             filter:
                 "bevy_log_diagnostic=debug,gfx_backend_metal=warn,wgpu_core=warn,bevy_render=warn"
                     .to_string(),
+            ..Default::default()
         });
     } else {
         builder.add_resource(bevy::log::LogSettings {
             level: bevy::log::Level::WARN,
-            filter: "".to_string(),
+            ..Default::default()
         });
     }
 
