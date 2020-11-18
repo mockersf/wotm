@@ -356,7 +356,10 @@ fn keyboard_input_system(
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && screen.loaded {
         if keyboard_input.just_released(KeyCode::Escape) {
-            game_screen.current_screen = crate::Screen::Exit;
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                game_screen.current_screen = crate::Screen::Exit;
+            }
         } else if keyboard_input.just_released(KeyCode::F) {
             let window = wnds.get_primary_mut().unwrap();
             match window.mode() {
