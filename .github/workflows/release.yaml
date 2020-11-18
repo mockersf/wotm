@@ -1,45 +1,48 @@
 name: release-flow
 
-# https://help.github.com/en/articles/events-that-trigger-workflows#release-event-release
-# on: release
-
 on:
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+*"
 
-jobs:
-  build-macOS:
-    runs-on: macOS-latest
+  # jobs:
+  #   build-macOS:
+  #     runs-on: macOS-latest
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Build and release
-        run: |
-          export CFLAGS="-fno-stack-check"
-          export MACOSX_DEPLOYMENT_TARGET="10.9"
-          cargo build --release
-          mkdir -p kmanb.app/Contents/MacOS
-          cp target/release/kmanb kmanb.app/Contents/MacOS/
-          strip kmanb.app/Contents/MacOS/kmanb
-          hdiutil create -fs HFS+ -volname "kmanb" -srcfolder kmanb.app kmanb.dmg
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: kmanb.dmg
-          asset_name: kmanb-macOS.dmg
-          tag: ${{ github.ref }}
-          overwrite: true
+  #     steps:
+  #       - name: Get the version
+  #         id: get_version
+  #         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+  #       - uses: actions/checkout@v2
+  #       - uses: actions-rs/toolchain@v1
+  #         with:
+  #           toolchain: stable
+  #           override: true
+  #       - name: Build and release
+  #         run: |
+  #           export CFLAGS="-fno-stack-check"
+  #           export MACOSX_DEPLOYMENT_TARGET="10.9"
+  #           cargo build --release
+  #           mkdir -p wotm.app/Contents/MacOS
+  #           cp target/release/wotm wotm.app/Contents/MacOS/
+  #           strip wotm.app/Contents/MacOS/wotm
+  #           hdiutil create -fs HFS+ -volname "wotm" -srcfolder wotm.app wotm.dmg
+  #       - name: Upload binaries to release
+  #         uses: svenstaro/upload-release-action@v2
+  #         with:
+  #           repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #           file: wotm.dmg
+  #           asset_name: wotm-macOS-$VERSION.dmg
+  #           tag: ${{ github.ref }}
+  #           overwrite: true
 
   build-linux:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -50,45 +53,42 @@ jobs:
       - name: Build and release
         run: |
           cargo build --release
-          strip target/release/kmanb
+          strip target/release/wotm
       - uses: papeloto/action-zip@v1
         with:
-          files: target/release/kmanb
-          dest: kmanb-linux.zip
+          files: target/release/wotm
+          dest: wotm-linux.zip
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: kmanb-linux.zip
-          asset_name: kmanb-linux.zip
+          file: wotm-linux.zip
+          asset_name: wotm-linux-$VERSION.zip
           tag: ${{ github.ref }}
           overwrite: true
-
-  build-windows:
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - uses: seanmiddleditch/gha-setup-ninja@master
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.x"
-      - name: Build and release
-        run: |
-          cargo build --release
-      - uses: papeloto/action-zip@v1
-        with:
-          files: target/release/kmanb.exe
-          dest: kmanb-windows.zip
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: kmanb-windows.zip
-          asset_name: kmanb-windows.zip
-          tag: ${{ github.ref }}
-          overwrite: true
+  # build-windows:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: Get the version
+  #       id: get_version
+  #       run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+  #     - uses: actions/checkout@v2
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         override: true
+  #     - name: Build and release
+  #       run: |
+  #         cargo build --release
+  #     - uses: papeloto/action-zip@v1
+  #       with:
+  #         files: target/release/wotm.exe
+  #         dest: wotm-windows.zip
+  #     - name: Upload binaries to release
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: wotm-windows.zip
+  #         asset_name: wotm-windows-${{ VERSION }}.zip
+  #         tag: ${{ github.ref }}
+  #         overwrite: true
