@@ -35,8 +35,8 @@ bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, f
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = ["bevy_winit", "render", "png"] }
-# bevy_webgl2 = {git = "https://github.com/mrk-its/bevy_webgl2"}
-bevy_webgl2 = {git = "https://github.com/vleue/bevy_webgl2"}
+# bevy_webgl2 = { git = "https://github.com/mrk-its/bevy_webgl2" }
+bevy_webgl2 = { git = "https://github.com/vleue/bevy_webgl2" }
 
 [features]
 default = ["bundled", "bevy/bevy_wgpu" ]
