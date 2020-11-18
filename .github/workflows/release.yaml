@@ -178,7 +178,7 @@ jobs:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
 
   build-wasm:
-    runs-on: linux-latest
+    runs-on: ubuntu-latest
     env:
       channel: wasm
     steps:
