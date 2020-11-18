@@ -93,7 +93,7 @@ fn setup_game(
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
-        let nb_moon = rand::thread_rng().gen_range(1, 4);
+        let nb_moon = rand::thread_rng().gen_range(2, 4);
 
         for i in 0..nb_moon {
             let self_rotation = rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_4;
