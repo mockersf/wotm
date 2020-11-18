@@ -54,3 +54,19 @@ script = [
     wasm-bindgen --no-typescript --out-name $CARGO_MAKE_CRATE_NAME --out-dir wasm --target web ${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/$CARGO_MAKE_CRATE_NAME.wasm
     """
 ]
+
+[tasks.install-release]
+description = "Installs cargo release."
+category = "Test"
+install_crate = { crate_name = "cargo-release", binary = "cargo-release", test_arg = "--help" }
+args = [ "release", "--help" ]
+
+[tasks.release]
+workspace = false
+dependencies = [ "install-release" ]
+script = [
+    """
+    #!/usr/bin/env bash
+    cargo release --package file://`pwd`
+    """
+]
