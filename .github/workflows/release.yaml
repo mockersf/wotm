@@ -209,7 +209,7 @@ jobs:
           cargo install wasm-bindgen-cli
       - name: Build and release
         run: |
-          cargo build --release --target wasm32-unknown-unknown --no-default-features --features="bundled"
+          cargo build --release --target wasm32-unknown-unknown --no-default-features --features="wasm_default"
           wasm-bindgen --no-typescript --out-name ${{ env.binary }} --out-dir wasm --target web ${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/${{ env.binary }}.wasm
       - uses: papeloto/action-zip@v1
         with:

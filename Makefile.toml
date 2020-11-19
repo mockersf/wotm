@@ -39,7 +39,7 @@ workspace = false
 script = [
     """
     #!/usr/bin/env bash
-    RUST_LOG=info cargo build --release --target wasm32-unknown-unknown --no-default-features --features="bundled"
+    RUST_LOG=info cargo build --release --target wasm32-unknown-unknown --no-default-features --features="wasm_default"
     wasm-bindgen --no-typescript --out-name $CARGO_MAKE_CRATE_NAME --out-dir wasm --target web ${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/$CARGO_MAKE_CRATE_NAME.wasm
     """
 ]
@@ -50,7 +50,7 @@ watch = { watch = ["./src/", "./crates/"] }
 script = [
     """
     #!/usr/bin/env bash
-    RUST_LOG=info cargo build --release --target wasm32-unknown-unknown --no-default-features --features="bundled"
+    RUST_LOG=info cargo build --release --target wasm32-unknown-unknown --no-default-features --features="wasm_default"
     wasm-bindgen --no-typescript --out-name $CARGO_MAKE_CRATE_NAME --out-dir wasm --target web ${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/$CARGO_MAKE_CRATE_NAME.wasm
     """
 ]
