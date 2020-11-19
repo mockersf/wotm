@@ -54,6 +54,7 @@ fn setup_game(
     (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
+    mut events: ResMut<Events<ui::InteractionEvent>>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
@@ -169,6 +170,11 @@ fn setup_game(
                     OwnedBy::Neutral
                 })
                 .with(ScreenTag);
+            if player_start_moon == i {
+                events.send(ui::InteractionEvent::Clicked(Some(
+                    commands.current_entity().unwrap(),
+                )));
+            }
         }
     }
 }
