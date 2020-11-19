@@ -144,6 +144,7 @@ fn setup(
                     .with_scale(2.)
                     .with_headstart(),
             )
+            .with(crate::game::OwnedBy::Neutral)
             .with(ScreenTag);
 
         commands

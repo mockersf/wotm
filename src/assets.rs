@@ -35,7 +35,9 @@ pub struct AssetHandles {
     font_sub_handle: Option<Handle<Font>>,
     game: Option<GameHandles>,
 
-    color_spawning: Option<Handle<ColorMaterial>>,
+    color_spawning_self: Option<Handle<ColorMaterial>>,
+    color_spawning_enemy: Option<Handle<ColorMaterial>>,
+    color_spawning_neutral: Option<Handle<ColorMaterial>>,
     color_selected: Option<Handle<ColorMaterial>>,
     color_highlighted: Option<Handle<ColorMaterial>>,
 }
@@ -44,7 +46,7 @@ pub struct AssetHandles {
 pub struct GameHandles {
     pub planets: Vec<(Handle<ColorMaterial>, u32)>,
     pub orbiters: Vec<Handle<ColorMaterial>>,
-    pub ships: Vec<Handle<ColorMaterial>>,
+    pub ships: Vec<Vec<Handle<ColorMaterial>>>,
 }
 
 impl AssetHandles {
@@ -129,16 +131,40 @@ impl AssetHandles {
         self.font_sub_handle.as_ref().unwrap().clone()
     }
 
-    pub fn get_color_spawning(
+    pub fn get_color_spawning_self(
         &mut self,
         materials: &mut Assets<ColorMaterial>,
     ) -> Handle<ColorMaterial> {
-        if self.color_spawning.is_none() {
-            self.color_spawning = Some(materials.add(
+        if self.color_spawning_self.is_none() {
+            self.color_spawning_self = Some(materials.add(
                 Color::rgb(0x22 as f32 / 255., 0x8B as f32 / 255., 0x22 as f32 / 255.).into(),
             ));
         }
-        self.color_spawning.as_ref().unwrap().clone()
+        self.color_spawning_self.as_ref().unwrap().clone()
+    }
+
+    pub fn get_color_spawning_neutral(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_spawning_neutral.is_none() {
+            self.color_spawning_neutral = Some(materials.add(
+                Color::rgb(0x22 as f32 / 255., 0x22 as f32 / 255., 0x22 as f32 / 255.).into(),
+            ));
+        }
+        self.color_spawning_neutral.as_ref().unwrap().clone()
+    }
+
+    pub fn get_color_spawning_enemy(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_spawning_enemy.is_none() {
+            self.color_spawning_enemy = Some(materials.add(
+                Color::rgb(0x8B as f32 / 255., 0x22 as f32 / 255., 0x22 as f32 / 255.).into(),
+            ));
+        }
+        self.color_spawning_enemy.as_ref().unwrap().clone()
     }
 
     pub fn get_color_selected(
@@ -204,15 +230,34 @@ impl AssetHandles {
                     colormaterial!(mats, assets, "Meteors/spaceMeteors_004.png"),
                 ],
                 ships: vec![
-                    colormaterial!(mats, assets, "Ships/spaceShips_001.png"),
-                    colormaterial!(mats, assets, "Ships/spaceShips_002.png"),
-                    colormaterial!(mats, assets, "Ships/spaceShips_003.png"),
-                    // colormaterial!(mats, assets, "Ships/spaceShips_004.png"),
-                    // colormaterial!(mats, assets, "Ships/spaceShips_005.png"),
-                    colormaterial!(mats, assets, "Ships/spaceShips_006.png"),
-                    colormaterial!(mats, assets, "Ships/spaceShips_007.png"),
-                    colormaterial!(mats, assets, "Ships/spaceShips_008.png"),
-                    colormaterial!(mats, assets, "Ships/spaceShips_009.png"),
+                    vec![
+                        colormaterial!(mats, assets, "Ships/enemyBlue1.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlue2.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlue3.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlue4.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlue5.png"),
+                    ],
+                    vec![
+                        colormaterial!(mats, assets, "Ships/enemyGreen1.png"),
+                        colormaterial!(mats, assets, "Ships/enemyGreen2.png"),
+                        colormaterial!(mats, assets, "Ships/enemyGreen3.png"),
+                        colormaterial!(mats, assets, "Ships/enemyGreen4.png"),
+                        colormaterial!(mats, assets, "Ships/enemyGreen5.png"),
+                    ],
+                    vec![
+                        colormaterial!(mats, assets, "Ships/enemyRed1.png"),
+                        colormaterial!(mats, assets, "Ships/enemyRed2.png"),
+                        colormaterial!(mats, assets, "Ships/enemyRed3.png"),
+                        colormaterial!(mats, assets, "Ships/enemyRed4.png"),
+                        colormaterial!(mats, assets, "Ships/enemyRed5.png"),
+                    ],
+                    vec![
+                        colormaterial!(mats, assets, "Ships/enemyBlack1.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlack2.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlack3.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlack4.png"),
+                        colormaterial!(mats, assets, "Ships/enemyBlack5.png"),
+                    ],
                 ],
             });
         }

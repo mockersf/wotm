@@ -101,13 +101,12 @@ fn spawn_ship(
         &GlobalTransform,
         Entity,
         &Children,
+        &crate::game::OwnedBy,
         Option<&bevy_rapier2d::physics::RigidBodyHandleComponent>,
     )>,
     progress_query: Query<Entity, With<SpawnShipProgress>>,
 ) {
-    let green = asset_handles.get_color_spawning(&mut materials);
-
-    for (mut spawn, global_transform, entity, children, rigid_body) in query.iter_mut() {
+    for (mut spawn, global_transform, entity, children, owned_by, rigid_body) in query.iter_mut() {
         let game_handles = asset_handles.get_game_handles_unsafe();
         spawn.every.tick(time.delta_seconds);
 
@@ -116,6 +115,17 @@ fn spawn_ship(
             .find_map(|entity| progress_query.get(*entity).ok())
         {
             if let Some(rigid_body) = rigid_body {
+                let color_spawn_progress = match owned_by {
+                    crate::game::OwnedBy::Player(0) => {
+                        asset_handles.get_color_spawning_self(&mut materials)
+                    }
+                    crate::game::OwnedBy::Player(_) => {
+                        asset_handles.get_color_spawning_enemy(&mut materials)
+                    }
+                    crate::game::OwnedBy::Neutral => {
+                        asset_handles.get_color_spawning_neutral(&mut materials)
+                    }
+                };
                 let body = bodies.get(rigid_body.handle()).unwrap();
 
                 let angle = spawn.every.elapsed / spawn.every.duration * 2. * std::f32::consts::PI;
@@ -136,7 +146,7 @@ fn spawn_ship(
                 );
                 let path = builder.build();
                 let sprite = path.stroke(
-                    green.clone(),
+                    color_spawn_progress.clone(),
                     &mut meshes,
                     Vec3::new(0.0, 0.0, 0.0),
                     &bevy_prototype_lyon::prelude::StrokeOptions::default()
@@ -150,7 +160,15 @@ fn spawn_ship(
         }
 
         if spawn.every.just_finished {
-            let ship = game_handles.ships.choose(&mut rand::thread_rng()).unwrap();
+            if let crate::game::OwnedBy::Neutral = owned_by {
+                spawn.every.duration *= 1.02;
+            }
+            let ship = game_handles.ships[match owned_by {
+                crate::game::OwnedBy::Player(i) => *i,
+                crate::game::OwnedBy::Neutral => 3,
+            }]
+            .choose(&mut rand::thread_rng())
+            .unwrap();
             let orbiter = Orbiter::every(
                 rand::thread_rng().gen_range(0.5, 1.),
                 entity,
@@ -165,7 +183,7 @@ fn spawn_ship(
                 .spawn(SpriteBundle {
                     transform: Transform {
                         translation,
-                        scale: Vec3::splat(spawn.scale * 0.05),
+                        scale: Vec3::splat(spawn.scale * 0.15),
                         ..Default::default()
                     },
                     material: ship.clone(),
@@ -181,6 +199,7 @@ fn spawn_ship(
                     spawn.scale * 5.,
                 ))
                 .with(orbiter)
+                .with(owned_by.clone())
                 .with(Ship);
         }
     }

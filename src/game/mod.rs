@@ -94,10 +94,13 @@ fn setup_game(
             .with(ui::InteractionBox {
                 radius: planet.1 as f32 / 10. + 5.,
             })
+            .with(OwnedBy::Neutral)
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
         let nb_moon = rand::thread_rng().gen_range(2, 4);
+
+        let player_start_moon = rand::thread_rng().gen_range(0, nb_moon);
 
         for i in 0..nb_moon {
             let self_rotation = rand::thread_rng().gen_range(-1., 1.) * std::f32::consts::FRAC_PI_4;
@@ -160,6 +163,11 @@ fn setup_game(
                     index: i + 1,
                     planet,
                 })
+                .with(if player_start_moon == i {
+                    OwnedBy::Player(0)
+                } else {
+                    OwnedBy::Neutral
+                })
                 .with(ScreenTag);
         }
     }
@@ -217,6 +225,12 @@ fn keyboard_input_system(
             }
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum OwnedBy {
+    Neutral,
+    Player(usize),
 }
 
 struct Player {}
