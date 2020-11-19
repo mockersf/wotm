@@ -38,8 +38,10 @@ pub struct AssetHandles {
     color_spawning_self: Option<Handle<ColorMaterial>>,
     color_spawning_enemy: Option<Handle<ColorMaterial>>,
     color_spawning_neutral: Option<Handle<ColorMaterial>>,
-    color_selected: Option<Handle<ColorMaterial>>,
-    color_highlighted: Option<Handle<ColorMaterial>>,
+    color_selected_self: Option<Handle<ColorMaterial>>,
+    color_selected_other: Option<Handle<ColorMaterial>>,
+    color_highlighted_self: Option<Handle<ColorMaterial>>,
+    color_highlighted_other: Option<Handle<ColorMaterial>>,
 }
 
 #[derive(Clone)]
@@ -136,9 +138,7 @@ impl AssetHandles {
         materials: &mut Assets<ColorMaterial>,
     ) -> Handle<ColorMaterial> {
         if self.color_spawning_self.is_none() {
-            self.color_spawning_self = Some(materials.add(
-                Color::rgb(0x22 as f32 / 255., 0x8B as f32 / 255., 0x22 as f32 / 255.).into(),
-            ));
+            self.color_spawning_self = Some(materials.add(Color::hex("43BA25").unwrap().into()));
         }
         self.color_spawning_self.as_ref().unwrap().clone()
     }
@@ -148,9 +148,7 @@ impl AssetHandles {
         materials: &mut Assets<ColorMaterial>,
     ) -> Handle<ColorMaterial> {
         if self.color_spawning_neutral.is_none() {
-            self.color_spawning_neutral = Some(materials.add(
-                Color::rgb(0x22 as f32 / 255., 0x22 as f32 / 255., 0x22 as f32 / 255.).into(),
-            ));
+            self.color_spawning_neutral = Some(materials.add(Color::hex("222222").unwrap().into()));
         }
         self.color_spawning_neutral.as_ref().unwrap().clone()
     }
@@ -160,34 +158,50 @@ impl AssetHandles {
         materials: &mut Assets<ColorMaterial>,
     ) -> Handle<ColorMaterial> {
         if self.color_spawning_enemy.is_none() {
-            self.color_spawning_enemy = Some(materials.add(
-                Color::rgb(0x8B as f32 / 255., 0x22 as f32 / 255., 0x22 as f32 / 255.).into(),
-            ));
+            self.color_spawning_enemy = Some(materials.add(Color::hex("FA314A").unwrap().into()));
         }
         self.color_spawning_enemy.as_ref().unwrap().clone()
     }
 
-    pub fn get_color_selected(
+    pub fn get_color_selected_self(
         &mut self,
         materials: &mut Assets<ColorMaterial>,
     ) -> Handle<ColorMaterial> {
-        if self.color_selected.is_none() {
-            self.color_selected = Some(materials.add(
-                Color::rgb(0x45 as f32 / 255., 0xb6 as f32 / 255., 0xfe as f32 / 255.).into(),
-            ));
+        if self.color_selected_self.is_none() {
+            self.color_selected_self = Some(materials.add(Color::hex("1F7AFF").unwrap().into()));
         }
-        self.color_selected.as_ref().unwrap().clone()
+        self.color_selected_self.as_ref().unwrap().clone()
     }
-    pub fn get_color_highlighted(
+
+    pub fn get_color_selected_other(
         &mut self,
         materials: &mut Assets<ColorMaterial>,
     ) -> Handle<ColorMaterial> {
-        if self.color_highlighted.is_none() {
-            self.color_highlighted = Some(materials.add(
-                Color::rgb(0x1c as f32 / 255., 0x49 as f32 / 255., 0x66 as f32 / 255.).into(),
-            ));
+        if self.color_selected_other.is_none() {
+            self.color_selected_other = Some(materials.add(Color::hex("F3FA66").unwrap().into()));
         }
-        self.color_highlighted.as_ref().unwrap().clone()
+        self.color_selected_other.as_ref().unwrap().clone()
+    }
+
+    pub fn get_color_highlighted_self(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_highlighted_self.is_none() {
+            self.color_highlighted_self = Some(materials.add(Color::hex("0F3C80").unwrap().into()));
+        }
+        self.color_highlighted_self.as_ref().unwrap().clone()
+    }
+
+    pub fn get_color_highlighted_other(
+        &mut self,
+        materials: &mut Assets<ColorMaterial>,
+    ) -> Handle<ColorMaterial> {
+        if self.color_highlighted_other.is_none() {
+            self.color_highlighted_other =
+                Some(materials.add(Color::hex("7C8034").unwrap().into()));
+        }
+        self.color_highlighted_other.as_ref().unwrap().clone()
     }
 
     pub fn get_game_handles(

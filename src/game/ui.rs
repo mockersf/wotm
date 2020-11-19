@@ -250,15 +250,13 @@ pub fn interaction(
     query_body: Query<(
         &bevy_rapier2d::physics::RigidBodyHandleComponent,
         &InteractionBox,
+        &crate::game::OwnedBy,
     )>,
     query_children: Query<&Children>,
     query_interacted: Query<Entity, With<Interacted>>,
 ) {
-    let selected = asset_handles.get_color_selected(&mut materials);
-    let highlighted = asset_handles.get_color_highlighted(&mut materials);
-
     for event in event_reader.iter(&events) {
-        let (color, entity) = match event {
+        let (color_selected, entity) = match event {
             InteractionEvent::Clicked(Some(e)) => {
                 if let Some(selected) = game.selected {
                     if selected != *e {
@@ -277,7 +275,7 @@ pub fn interaction(
                     game.ratio = super::Ratio::default();
                 }
                 game.selected = Some(*e);
-                (selected.clone(), e)
+                (true, e)
             }
             InteractionEvent::Hovered(Some(e)) => {
                 if let Some(selected) = game.selected {
@@ -294,7 +292,7 @@ pub fn interaction(
                     }
                 }
                 game.targeted = Some(*e);
-                (highlighted.clone(), e)
+                (false, e)
             }
             InteractionEvent::Clicked(None) => {
                 if let Some(selected) = game.selected {
@@ -332,7 +330,15 @@ pub fn interaction(
             }
         };
 
-        if let Ok((rigid_body, interaction_box)) = query_body.get(*entity) {
+        if let Ok((rigid_body, interaction_box, owner)) = query_body.get(*entity) {
+            let color = match (color_selected, owner) {
+                (true, OwnedBy::Player(0)) => asset_handles.get_color_selected_self(&mut materials),
+                (true, _) => asset_handles.get_color_selected_other(&mut materials),
+                (false, OwnedBy::Player(0)) => {
+                    asset_handles.get_color_highlighted_self(&mut materials)
+                }
+                (false, _) => asset_handles.get_color_highlighted_other(&mut materials),
+            };
             let body = bodies.get(rigid_body.handle()).unwrap();
 
             let radius = interaction_box.radius * 10. - 20.;
