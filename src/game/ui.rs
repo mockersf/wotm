@@ -285,6 +285,14 @@ pub fn interaction(
                         continue;
                     }
                 }
+                if let Some(children) = game.targeted.and_then(|e| query_children.get(e).ok()) {
+                    if let Some(entity) = children
+                        .iter()
+                        .find(|entity| query_interacted.get(**entity).is_ok())
+                    {
+                        commands.despawn_recursive(*entity);
+                    }
+                }
                 game.targeted = Some(*e);
                 (highlighted.clone(), e)
             }
