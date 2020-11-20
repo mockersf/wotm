@@ -61,3 +61,6 @@ codegen-units = 1
 
 [patch.crates-io]
 bevy = { git = "https://github.com/bevyengine/bevy" }
+
+[patch.'https://github.com/bevyengine/bevy']
+bevy = { git = "https://github.com//bevyengine/bevy" }
