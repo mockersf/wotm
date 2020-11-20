@@ -7,7 +7,8 @@ on:
 
 env:
   binary: wotm
-  itch_name: wotm
+  itch_game: wotm
+  itch_user: vleue
 
 jobs:
   release:
@@ -130,19 +131,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        channel: ["linux", "wasm", "macos", "windows"]
+        target:
+          - channel: linux
+            extension: zip
+          - channel: wasm
+            extension: zip
+          - channel: macos
+            extension: dmg
+          - channel: windows
+            extension: zip
     steps:
       - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
       - name: Download last release
         uses: actions/download-artifact@v1
         with:
-          name: ${{ matrix.channel }}-release
+          name: ${{ matrix.target.channel }}-release
       - uses: josephbmanley/butler-publish-itchio-action@v1.0.2
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-          CHANNEL: ${{ matrix.channel }}
-          ITCH_GAME: ${{ env.itch_name }}
-          ITCH_USER: vleue
-          PACKAGE: ${{ matrix.channel }}-release
+          CHANNEL: ${{ matrix.target.channel }}
+          ITCH_GAME: ${{ env.itch_game }}
+          ITCH_USER: ${{ env.itch_user }}
+          PACKAGE: ${{ matrix.target.channel }}-release/${{ env.binary }}.${{ matrix.target.extension }}
           VERSION: ${{ steps.get_version.outputs.tag }}
