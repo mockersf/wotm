@@ -144,5 +144,5 @@ jobs:
           CHANNEL: ${{ matrix.channel }}
           ITCH_GAME: ${{ env.itch_name }}
           ITCH_USER: vleue
-          PACKAGE: ${{ matrix.target.channel }}-release
+          PACKAGE: ${{ matrix.channel }}-release
           VERSION: ${{ steps.get_version.outputs.tag }}
