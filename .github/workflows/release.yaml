@@ -37,7 +37,7 @@ jobs:
             extension: zip
             features: default
     steps:
-      - uses: olegtarasov/get-tag@v2
+      - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -132,7 +132,7 @@ jobs:
       matrix:
         channel: ["linux", "wasm", "macos", "windows"]
     steps:
-      - uses: olegtarasov/get-tag@v2
+      - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
       - name: Download last release
         uses: actions/download-artifact@v1
