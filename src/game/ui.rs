@@ -376,7 +376,10 @@ pub fn interaction(
     }
 }
 
-pub fn ui_update(
+pub struct UiOwner;
+pub struct UiShipCount;
+
+pub fn ui_update_on_interaction_event(
     commands: &mut Commands,
     game: Res<Game>,
     mut asset_handles: ResMut<crate::AssetHandles>,
@@ -438,59 +441,135 @@ pub fn ui_update(
         }
 
         if let Some(moon_entity) = moon_entity {
-            if let Ok(planet) = query_planet.get(*moon_entity) {
-                let ui_name = commands
-                    .spawn(TextBundle {
-                        style: Style {
-                            size: Size {
-                                height: Val::Px(30.),
-                                ..Default::default()
-                            },
-                            align_self: AlignSelf::Center,
-                            ..Default::default()
-                        },
-                        text: Text {
-                            value: planet.name.clone(),
-                            font: font.clone(),
-                            style: TextStyle {
-                                color: crate::ui::ColorScheme::TEXT_DARK,
-                                font_size: 30.,
-                                ..Default::default()
-                            },
-                        },
-                        ..Default::default()
-                    })
-                    .current_entity()
-                    .unwrap();
-                commands.push_children(ui_target_entity, &[ui_name]);
+            let name = if let Ok(planet) = query_planet.get(*moon_entity) {
+                planet.name.clone()
             } else {
                 let moon = query_moon.get(*moon_entity).unwrap();
                 let planet = query_planet.get(moon.planet).unwrap();
-                let moon_name = format!("{} {}", planet.name, roman::to(moon.index).unwrap());
-                let ui_name = commands
-                    .spawn(TextBundle {
-                        style: Style {
-                            size: Size {
-                                height: Val::Px(30.),
-                                ..Default::default()
-                            },
-                            align_self: AlignSelf::Center,
+                format!("{} {}", planet.name, roman::to(moon.index).unwrap())
+            };
+            let ui_name = commands
+                .spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(30.),
                             ..Default::default()
                         },
-                        text: Text {
-                            value: moon_name,
-                            font: font.clone(),
-                            style: TextStyle {
-                                color: crate::ui::ColorScheme::TEXT_DARK,
-                                font_size: 30.,
-                                ..Default::default()
-                            },
+                        align_self: AlignSelf::Center,
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: name,
+                        font: font.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT_DARK,
+                            font_size: 30.,
+                            ..Default::default()
+                        },
+                    },
+                    ..Default::default()
+                })
+                .current_entity()
+                .unwrap();
+
+            let ui_owner = commands
+                .spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(15.),
+                            ..Default::default()
+                        },
+                        align_self: AlignSelf::Center,
+                        ..Default::default()
+                    },
+                    text: Text {
+                        font: font.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT_DARK,
+                            font_size: 15.,
+                            ..Default::default()
                         },
                         ..Default::default()
-                    })
-                    .current_entity()
-                    .unwrap();
-                commands.push_children(ui_target_entity, &[ui_name]);
+                    },
+                    ..Default::default()
+                })
+                .with(UiOwner)
+                .current_entity()
+                .unwrap();
+
+            let ui_ships_orbiting_count = commands
+                .spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(25.),
+                            ..Default::default()
+                        },
+                        align_self: AlignSelf::Center,
+                        ..Default::default()
+                    },
+                    text: Text {
+                        font: font.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT_DARK,
+                            font_size: 25.,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .with(UiShipCount)
+                .current_entity()
+                .unwrap();
+
+            commands.push_children(
+                ui_target_entity,
+                &[ui_name, ui_owner, ui_ships_orbiting_count],
+            );
+        }
+    }
+}
+pub fn ui_update(
+    game: Res<Game>,
+    query_ui_selected: Query<&Children, With<UiSelected>>,
+    query_ui_highlighted: Query<&Children, With<UiHighlighted>>,
+    query_owner: Query<&crate::game::OwnedBy>,
+    query_ships: Query<&crate::space::Orbiter, With<crate::space::Ship>>,
+    mut ui_owner: Query<&mut Text, With<UiOwner>>,
+    mut ui_ship_count: Query<&mut Text, With<UiShipCount>>,
+) {
+    for (moon_entity, ui_entity) in
+        std::iter::once((game.selected, query_ui_selected.iter().next())).chain(std::iter::once((
+            game.targeted,
+            query_ui_highlighted.iter().next(),
+        )))
+    {
+        if let Some(entity) = moon_entity {
+            if let Some(ui_main) = ui_entity {
+                for child in ui_main.iter() {
+                    if let Ok(mut text) = ui_owner.get_mut(*child) {
+                        let owner = query_owner.get(entity).unwrap();
+                        text.value = match owner {
+                            crate::game::OwnedBy::Player(0) => "Owned by you".to_string(),
+                            crate::game::OwnedBy::Player(_) => {
+                                "Owned by another player".to_string()
+                            }
+                            crate::game::OwnedBy::Neutral => "Free".to_string(),
+                        };
+                    }
+                    if let Ok(mut text) = ui_ship_count.get_mut(*child) {
+                        let ships_orbiting_count = query_ships
+                            .iter()
+                            .filter(|orbiter| orbiter.around == entity)
+                            .count();
+
+                        text.value = match ships_orbiting_count {
+                            0 => "no ship".to_string(),
+                            1 => "1 ship".to_string(),
+                            n => format!("{} ships", n),
+                        };
+                    }
+                }
             }
         }
     }

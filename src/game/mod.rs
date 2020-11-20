@@ -32,6 +32,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(keyboard_input_system)
             .add_system(ui::setup)
             .add_system(ui::interaction)
+            .add_system(ui::ui_update_on_interaction_event)
             .add_system(ui::ui_update)
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
             .add_system(setup_game)
