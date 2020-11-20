@@ -75,16 +75,16 @@ jobs:
         if: matrix.target.channel == 'macos'
         run: |
           mkdir -p ${{ env.binary }}.app/Contents/MacOS
-          cp target/release/${{ env.binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp target/${{ matrix.target.target }}/release/${{ env.binary }} ${{ env.binary }}.app/Contents/MacOS/
           strip ${{ env.binary }}.app/Contents/MacOS/${{ env.binary }}
       - name: linux finish
         if: matrix.target.channel == 'linux'
         run: |
-          strip target/release/${{ env.binary }}
+          strip target/${{ matrix.target.target }}/release/${{ env.binary }}
       - name: wasm finish
         if: matrix.target.channel == 'wasm'
         run: |
-          wasm-bindgen --no-typescript --out-name ${{ env.binary }} --out-dir wasm --target web ${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/${{ env.binary }}.wasm
+          wasm-bindgen --no-typescript --out-name ${{ env.binary }} --out-dir wasm --target web target/${{ matrix.target.target }}/release/${{ env.binary }}.wasm
 
       - name: macOS packaging
         if: matrix.target.channel == 'macos'
@@ -94,13 +94,13 @@ jobs:
         if: matrix.target.channel == 'linux'
         uses: papeloto/action-zip@v1
         with:
-          files: target/release/${{ env.binary }}
+          files: target/${{ matrix.target.target }}/release/${{ env.binary }}
           dest: ${{ env.binary }}.${{ matrix.target.extension }}
       - name: windows packaging
         if: matrix.target.channel == 'windows'
         uses: papeloto/action-zip@v1
         with:
-          files: target/release/${{ env.binary }}.exe
+          files: target/${{ matrix.target.target }}/release/${{ env.binary }}.exe
           dest: ${{ env.binary }}.${{ matrix.target.extension }}
       - name: wasm packaging
         if: matrix.target.channel == 'wasm'
@@ -114,7 +114,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ env.binary }}.${{ matrix.target.extension }}
-          asset_name: ${{ env.binary }}-${{ env.channel }}-${{ steps.get_version.outputs.tag }}.${{ matrix.target.extension }}
+          asset_name: ${{ env.binary }}-${{ matrix.target.channel }}-${{ steps.get_version.outputs.tag }}.${{ matrix.target.extension }}
           tag: ${{ github.ref }}
           overwrite: true
 
@@ -137,11 +137,11 @@ jobs:
       - name: Download last release
         uses: actions/download-artifact@v1
         with:
-          name: ${{ matrix.target.channel }}-release
+          name: ${{ matrix.channel }}-release
       - uses: josephbmanley/butler-publish-itchio-action@v1.0.2
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
-          CHANNEL: ${{ env.channel }}
+          CHANNEL: ${{ matrix.channel }}
           ITCH_GAME: ${{ env.itch_name }}
           ITCH_USER: vleue
           PACKAGE: ${{ matrix.target.channel }}-release
