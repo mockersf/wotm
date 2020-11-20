@@ -16,24 +16,24 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - image_name: ubuntu-latest
+          - channel: linux
+            image_name: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            channel: linux
             extension: zip
             features: default
-          - image_name: ubuntu-latest
+          - channel: wasm
+            image_name: ubuntu-latest
             target: wasm32-unknown-unknown
-            channel: wasm
             extension: zip
             features: wasm_default
-          - image_name: macOS-latest
+          - channel: macos
+            image_name: macOS-latest
             target: x86_64-apple-darwin
-            channel: macos
             extension: dmg
             features: default
-          - image_name: "windows-latest"
+          - channel: windows
+            image_name: windows-latest
             target: x86_64-pc-windows-msvc
-            channel: windows
             extension: zip
             features: default
     steps:
