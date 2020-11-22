@@ -122,8 +122,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 WindowMode::Windowed
             },
-            #[cfg(target_arch = "wasm32")]
-            canvas: Some("#bevy-canvas".to_string()),
             ..Default::default()
         })
         .add_resource(settings)
