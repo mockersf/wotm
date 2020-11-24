@@ -245,7 +245,12 @@ fn orbite_around(
         match orbiter.rotation {
             Rotation::Free => {
                 body.angvel = 0.;
-                body.position.rotation = bevy_rapier2d::na::UnitComplex::from_angle(rot);
+                body.position.rotation = match orbiter.direction {
+                    RotationDirection::Clockwise => bevy_rapier2d::na::UnitComplex::from_angle(rot),
+                    RotationDirection::CounterClockwise => {
+                        bevy_rapier2d::na::UnitComplex::from_angle(rot + std::f32::consts::PI)
+                    }
+                };
             }
             Rotation::Fixed => (),
         }
