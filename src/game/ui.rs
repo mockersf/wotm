@@ -574,3 +574,48 @@ pub fn ui_update(
         }
     }
 }
+
+pub fn orders(
+    commands: &mut Commands,
+    mouse_button_input: Res<Input<MouseButton>>,
+    game: Res<Game>,
+    query_owner: Query<&crate::game::OwnedBy>,
+    query_ships: Query<(Entity, &crate::space::Orbiter), With<crate::space::Ship>>,
+) {
+    if mouse_button_input.just_pressed(MouseButton::Right)
+        && game.selected.is_some()
+        && game.targeted.is_some()
+    {
+        let selected = game.selected.unwrap();
+        let targeted = game.targeted.unwrap();
+        let owner = query_owner.get(selected).unwrap();
+        if *owner != crate::game::OwnedBy::Player(0) {
+            return;
+        }
+        let ship_count = query_ships
+            .iter()
+            .filter(|(_, orbiter)| orbiter.around == selected)
+            .count();
+
+        query_ships
+            .iter()
+            .filter(|(_, orbiter)| orbiter.around == selected)
+            .take(match game.ratio {
+                Ratio::All => ship_count,
+                Ratio::ThreeQuarter => (ship_count as f32 * 3. / 4.) as usize,
+                Ratio::Half => (ship_count as f32 / 2.) as usize,
+                Ratio::OneQuarter => (ship_count as f32 / 4.) as usize,
+            })
+            .for_each(|(entity, _)| {
+                commands.remove_one::<crate::space::Orbiter>(entity);
+                commands.insert_one(
+                    entity,
+                    crate::space::MoveTowards {
+                        speed: 2000.,
+                        from: selected,
+                        towards: targeted,
+                    },
+                );
+            });
+    }
+}

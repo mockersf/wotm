@@ -53,6 +53,13 @@ impl Orbiter {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct MoveTowards {
+    pub speed: f32,
+    pub towards: Entity,
+    pub from: Entity,
+}
+
 pub struct SpawnShip {
     every: Timer,
     scale: f32,
@@ -84,7 +91,9 @@ impl SpawnShip {
 pub struct Plugin;
 impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(spawn_ship).add_system(orbite_around);
+        app.add_system(spawn_ship)
+            .add_system(orbite_around)
+            .add_system(move_towards);
     }
 }
 pub struct SpawnShipProgress;
@@ -205,7 +214,7 @@ fn spawn_ship(
     }
 }
 
-pub fn target_position(
+pub fn target_orbiting_position(
     seconds: f32,
     orbiter: &crate::space::Orbiter,
 ) -> bevy_rapier2d::rapier::math::Vector<f32> {
@@ -222,10 +231,7 @@ pub fn target_position(
 fn orbite_around(
     time: Res<Time>,
     mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
-    orbiters: Query<(
-        &bevy_rapier2d::physics::RigidBodyHandleComponent,
-        &crate::space::Orbiter,
-    )>,
+    orbiters: Query<(&bevy_rapier2d::physics::RigidBodyHandleComponent, &Orbiter)>,
     centers: Query<&GlobalTransform>,
 ) {
     for (rigid_body, orbiter) in orbiters.iter() {
@@ -239,7 +245,7 @@ fn orbite_around(
                     center_transform.translation.x,
                     center_transform.translation.y,
                 ),
-            target_position(time.seconds_since_startup as f32, orbiter),
+            target_orbiting_position(time.seconds_since_startup as f32, orbiter),
         );
         body.linvel = linvel * orbiter.speed * orbiter.distance;
         match orbiter.rotation {
@@ -267,4 +273,33 @@ pub fn go_from_to_rapier(from: Vector<f32>, to: Vector<f32>) -> (Vector<f32>, f3
             -to.angle(&Vector::new(0., 1.))
         } - std::f32::consts::FRAC_PI_2,
     )
+}
+
+fn move_towards(
+    time: Res<Time>,
+    mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
+    movers: Query<(
+        Entity,
+        &bevy_rapier2d::physics::RigidBodyHandleComponent,
+        &MoveTowards,
+    )>,
+    centers: Query<&GlobalTransform>,
+) {
+    for (moving, rigid_body, towards) in movers.iter() {
+        let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
+
+        let target = centers.get(towards.towards).unwrap();
+        let origin = centers.get(moving).unwrap();
+
+        let (linvel, rot) = crate::space::go_from_to_rapier(
+            bevy_rapier2d::rapier::math::Vector::new(0., 0.),
+            bevy_rapier2d::rapier::math::Vector::new(
+                target.translation.x - origin.translation.x,
+                target.translation.y - origin.translation.y,
+            ),
+        );
+        body.linvel = linvel * towards.speed * time.delta_seconds;
+        body.position.rotation =
+            bevy_rapier2d::na::UnitComplex::from_angle(rot - std::f32::consts::FRAC_PI_2);
+    }
 }

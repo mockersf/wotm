@@ -34,6 +34,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(ui::interaction)
             .add_system(ui::ui_update_on_interaction_event)
             .add_system(ui::ui_update)
+            .add_system(ui::orders)
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
             .add_system(setup_game)
             .add_system(setup_finish)
@@ -118,7 +119,7 @@ fn setup_game(
             )
             .self_rotate();
             let start_position =
-                crate::space::target_position(time.seconds_since_startup as f32, &orbiter);
+                crate::space::target_orbiting_position(time.seconds_since_startup as f32, &orbiter);
 
             commands
                 .spawn(SpriteBundle {
@@ -234,7 +235,7 @@ fn keyboard_input_system(
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OwnedBy {
     Neutral,
     Player(usize),
