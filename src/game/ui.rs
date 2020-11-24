@@ -534,7 +534,7 @@ pub fn ui_update(
     query_ui_selected: Query<&Children, With<UiSelected>>,
     query_ui_highlighted: Query<&Children, With<UiHighlighted>>,
     query_owner: Query<&crate::game::OwnedBy>,
-    query_ships: Query<&crate::space::Orbiter, With<crate::space::Ship>>,
+    query_ships: Query<(&crate::space::Orbiter, &crate::game::OwnedBy), With<crate::space::Ship>>,
     mut ui_owner: Query<&mut Text, With<UiOwner>>,
     mut ui_ship_count: Query<&mut Text, With<UiShipCount>>,
 ) {
@@ -547,9 +547,9 @@ pub fn ui_update(
         if let Some(entity) = moon_entity {
             if let Some(ui_main) = ui_entity {
                 for child in ui_main.iter() {
-                    if let Ok(mut text) = ui_owner.get_mut(*child) {
-                        let owner = query_owner.get(entity).unwrap();
-                        text.value = match owner {
+                    let owner = query_owner.get(entity).unwrap();
+                    if let Ok(mut owner_text) = ui_owner.get_mut(*child) {
+                        owner_text.value = match owner {
                             crate::game::OwnedBy::Player(0) => "Owned by you".to_string(),
                             crate::game::OwnedBy::Player(_) => {
                                 "Owned by another player".to_string()
@@ -557,13 +557,15 @@ pub fn ui_update(
                             crate::game::OwnedBy::Neutral => "Free".to_string(),
                         };
                     }
-                    if let Ok(mut text) = ui_ship_count.get_mut(*child) {
+                    if let Ok(mut count_text) = ui_ship_count.get_mut(*child) {
                         let ships_orbiting_count = query_ships
                             .iter()
-                            .filter(|orbiter| orbiter.around == entity)
+                            .filter(|(orbiter, owned_by)| {
+                                orbiter.around == entity && *owned_by == owner
+                            })
                             .count();
 
-                        text.value = match ships_orbiting_count {
+                        count_text.value = match ships_orbiting_count {
                             0 => "no ship".to_string(),
                             1 => "1 ship".to_string(),
                             n => format!("{} ships", n),
@@ -580,7 +582,10 @@ pub fn orders(
     mouse_button_input: Res<Input<MouseButton>>,
     game: Res<Game>,
     query_owner: Query<&crate::game::OwnedBy>,
-    query_ships: Query<(Entity, &crate::space::Orbiter), With<crate::space::Ship>>,
+    query_ships: Query<
+        (Entity, &crate::space::Orbiter, &crate::game::OwnedBy),
+        With<crate::space::Ship>,
+    >,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Right)
         && game.selected.is_some()
@@ -594,19 +599,23 @@ pub fn orders(
         }
         let ship_count = query_ships
             .iter()
-            .filter(|(_, orbiter)| orbiter.around == selected)
+            .filter(|(_, orbiter, owned_by)| {
+                orbiter.around == selected && **owned_by == crate::game::OwnedBy::Player(0)
+            })
             .count();
 
         query_ships
             .iter()
-            .filter(|(_, orbiter)| orbiter.around == selected)
+            .filter(|(_, orbiter, owned_by)| {
+                orbiter.around == selected && **owned_by == crate::game::OwnedBy::Player(0)
+            })
             .take(match game.ratio {
                 Ratio::All => ship_count,
                 Ratio::ThreeQuarter => (ship_count as f32 * 3. / 4.) as usize,
                 Ratio::Half => (ship_count as f32 / 2.) as usize,
                 Ratio::OneQuarter => (ship_count as f32 / 4.) as usize,
             })
-            .for_each(|(entity, _)| {
+            .for_each(|(entity, _, _)| {
                 commands.remove_one::<crate::space::Orbiter>(entity);
                 commands.insert_one(
                     entity,
