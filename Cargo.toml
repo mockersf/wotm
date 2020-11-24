@@ -1,6 +1,6 @@
 [package]
 name = "wotm"
-version = "0.1.16-dev"
+version = "0.1.16"
 authors = ["François Mockers <mockersf@gmail.com>"]
 edition = "2018"
 license = "MIT"
