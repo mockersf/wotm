@@ -680,7 +680,7 @@ dependencies = [
 [[package]]
 name = "bevy_webgl2"
 version = "0.3.0"
-source = "git+https://github.com/vleue/bevy_webgl2#d10b37703cc627faf611871c11130970e08ce2f2"
+source = "git+https://github.com/mrk-its/bevy_webgl2#a724cdf6b6392e3d0b185112a34c011987b8dc63"
 dependencies = [
  "bevy",
  "cfg-if 1.0.0",
@@ -1506,7 +1506,7 @@ dependencies = [
  "futures-io",
  "memchr",
  "parking",
- "pin-project-lite",
+ "pin-project-lite 0.1.11",
  "waker-fn",
 ]
 
@@ -2627,6 +2627,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c917123afa01924fc84bb20c4c03f004d9c38e5127e3c039bbf7f4b9c76a2f6b"
 
 [[package]]
+name = "pin-project-lite"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b063f57ec186e6140e2b8b6921e5f1bd89c7356dda5b33acc5401203ca6131c"
+
+[[package]]
 name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3177,9 +3183,9 @@ checksum = "8fb1df15f412ee2e9dfc1c504260fa695c1c3f10fe9f4a6ee2d2184d7d6450e2"
 
 [[package]]
 name = "syn"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "443b4178719c5a851e1bde36ce12da21d74a0e60b4d982ec3385a933c812f0f6"
+checksum = "3b4f34193997d92804d359ed09953e25d5138df6bcc055a71bf68ee89fdf9223"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3293,12 +3299,12 @@ dependencies = [
 
 [[package]]
 name = "tracing"
-version = "0.1.21"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0987850db3733619253fe60e17cb59b82d37c7e6c0236bb81e4d6b87c879f27"
+checksum = "9f47026cdc4080c07e49b37087de021820269d996f581aac150ef9e5583eefe3"
 dependencies = [
- "cfg-if 0.1.10",
- "pin-project-lite",
+ "cfg-if 1.0.0",
+ "pin-project-lite 0.2.0",
  "tracing-attributes",
  "tracing-core",
 ]
