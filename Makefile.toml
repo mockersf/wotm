@@ -44,6 +44,16 @@ script = [
     """
 ]
 
+[tasks.serve-wasm]
+workspace = false
+dependencies = ["build-wasm"]
+script = [
+    """
+    #!/usr/bin/env bash
+    http wasm
+    """
+]
+
 [tasks.watch-wasm]
 workspace = false
 watch = { watch = ["./src/", "./crates/"] }
