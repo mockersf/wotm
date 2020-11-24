@@ -238,7 +238,7 @@ fn keyboard_input_system(
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum OwnedBy {
     Neutral,
     Player(usize),

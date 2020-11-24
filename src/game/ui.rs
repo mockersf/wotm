@@ -378,6 +378,7 @@ pub fn interaction(
 
 pub struct UiOwner;
 pub struct UiShipCount;
+pub struct UiUnderAttack;
 
 pub fn ui_update_on_interaction_event(
     commands: &mut Commands,
@@ -521,10 +522,34 @@ pub fn ui_update_on_interaction_event(
                 .with(UiShipCount)
                 .current_entity()
                 .unwrap();
+            let ui_under_attack = commands
+                .spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(25.),
+                            ..Default::default()
+                        },
+                        align_self: AlignSelf::Center,
+                        ..Default::default()
+                    },
+                    text: Text {
+                        font: font.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT_DARK,
+                            font_size: 25.,
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .with(UiUnderAttack)
+                .current_entity()
+                .unwrap();
 
             commands.push_children(
                 ui_target_entity,
-                &[ui_name, ui_owner, ui_ships_orbiting_count],
+                &[ui_name, ui_owner, ui_ships_orbiting_count, ui_under_attack],
             );
         }
     }
@@ -537,6 +562,7 @@ pub fn ui_update(
     query_ships: Query<(&crate::space::Orbiter, &crate::game::OwnedBy), With<crate::space::Ship>>,
     mut ui_owner: Query<&mut Text, With<UiOwner>>,
     mut ui_ship_count: Query<&mut Text, With<UiShipCount>>,
+    mut ui_under_attack: Query<&mut Text, With<UiUnderAttack>>,
 ) {
     for (moon_entity, ui_entity) in
         std::iter::once((game.selected, query_ui_selected.iter().next())).chain(std::iter::once((
@@ -557,19 +583,31 @@ pub fn ui_update(
                             crate::game::OwnedBy::Neutral => "Free".to_string(),
                         };
                     }
-                    if let Ok(mut count_text) = ui_ship_count.get_mut(*child) {
-                        let ships_orbiting_count = query_ships
-                            .iter()
-                            .filter(|(orbiter, owned_by)| {
-                                orbiter.around == entity && *owned_by == owner
-                            })
-                            .count();
+                    let ships_orbiting_count = query_ships
+                        .iter()
+                        .filter(|(orbiter, _)| orbiter.around == entity)
+                        .fold(
+                            std::collections::HashMap::new(),
+                            |mut counts, (_, owned_by)| {
+                                let count = counts.entry(owned_by).or_insert(0);
+                                *count += 1;
+                                counts
+                            },
+                        );
 
-                        count_text.value = match ships_orbiting_count {
+                    if let Ok(mut count_text) = ui_ship_count.get_mut(*child) {
+                        count_text.value = match ships_orbiting_count.get(owner).unwrap_or(&0) {
                             0 => "no ship".to_string(),
                             1 => "1 ship".to_string(),
                             n => format!("{} ships", n),
                         };
+                    }
+                    if let Ok(mut under_attack) = ui_under_attack.get_mut(*child) {
+                        if ships_orbiting_count.len() > 1 {
+                            under_attack.value = "Under Attack".to_string();
+                        } else {
+                            under_attack.value = "".to_string();
+                        }
                     }
                 }
             }
