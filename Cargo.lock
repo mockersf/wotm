@@ -3690,7 +3690,7 @@ dependencies = [
 
 [[package]]
 name = "wotm"
-version = "0.1.15"
+version = "0.1.16-dev"
 dependencies = [
  "asset_io",
  "bevy",
