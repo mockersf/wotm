@@ -29,7 +29,6 @@ pub struct AssetHandles {
         Handle<Texture>,
     )>,
     button_handle: Option<Handle<crate::ui::button::Button>>,
-    character_handle: Option<Handle<TextureAtlas>>,
     selection_handle: Option<Handle<ColorMaterial>>,
     font_main_handle: Option<Handle<Font>>,
     font_sub_handle: Option<Handle<Font>>,
@@ -49,6 +48,7 @@ pub struct GameHandles {
     pub planets: Vec<(Handle<ColorMaterial>, u32)>,
     pub orbiters: Vec<Handle<ColorMaterial>>,
     pub ships: Vec<Vec<Handle<ColorMaterial>>>,
+    pub explosion_handle: Handle<TextureAtlas>,
 }
 
 impl AssetHandles {
@@ -204,10 +204,45 @@ impl AssetHandles {
         self.color_highlighted_other.as_ref().unwrap().clone()
     }
 
+    fn build_explosion_atlas(texture: Handle<Texture>) -> TextureAtlas {
+        let mut atlas = TextureAtlas::new_empty(texture, Vec2::new(512., 512.));
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(0., 0.),
+            max: Vec2::new(192., 192.),
+        });
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(0., 192.),
+            max: Vec2::new(152., 342.),
+        });
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(292., 360.),
+            max: Vec2::new(374., 451.),
+        });
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(292., 258.),
+            max: Vec2::new(384., 360.),
+        });
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(290., 134.),
+            max: Vec2::new(410., 258.),
+        });
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(192., 0.),
+            max: Vec2::new(325., 134.),
+        });
+        atlas.add_texture(bevy::sprite::Rect {
+            min: Vec2::new(152., 192.),
+            max: Vec2::new(290., 332.),
+        });
+
+        atlas
+    }
+
     pub fn get_game_handles(
         &mut self,
         assets: &AssetServer,
         mats: &mut Assets<ColorMaterial>,
+        atlases: &mut Assets<TextureAtlas>,
     ) -> GameHandles {
         if self.game.is_none() {
             self.game = Some(GameHandles {
@@ -273,6 +308,9 @@ impl AssetHandles {
                         colormaterial!(mats, assets, "Ships/enemyBlack5.png"),
                     ],
                 ],
+                explosion_handle: atlases.add(Self::build_explosion_atlas(
+                    assets.load("spritesheet_regularExplosion.png"),
+                )),
             });
         }
         self.game.as_ref().unwrap().clone()

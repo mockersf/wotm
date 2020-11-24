@@ -37,7 +37,6 @@ impl bevy::app::Plugin for Plugin {
             .add_system(go_away)
             .add_system(despawn_gone_ships)
             .add_system(menu_ship_behaviour)
-            .add_system(print_events)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
@@ -93,6 +92,7 @@ fn setup(
     mut nine_patches: ResMut<Assets<bevy_ninepatch::NinePatchBuilder<()>>>,
     mut buttons: ResMut<Assets<crate::ui::button::Button>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
@@ -107,7 +107,8 @@ fn setup(
         );
         let button = buttons.get(&button_handle).unwrap();
 
-        let game_handles = asset_handles.get_game_handles(&asset_server, &mut materials);
+        let game_handles =
+            asset_handles.get_game_handles(&asset_server, &mut materials, &mut atlases);
 
         let font: Handle<Font> = asset_handles.get_font_main_handle(&asset_server);
         let menu_indicator: Handle<ColorMaterial> =
@@ -458,55 +459,6 @@ fn rotate_on_self(time: Res<Time>, mut query: Query<(&RotateOnSelf, &mut Transfo
                     * (2. * std::f64::consts::PI)
                     + rotate.offset) as f32,
         )
-    }
-}
-
-fn print_events(
-    commands: &mut Commands,
-    events: Res<bevy_rapier2d::physics::EventQueue>,
-    bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
-    colliders: Res<bevy_rapier2d::rapier::geometry::ColliderSet>,
-    ship_owner: Query<&crate::game::OwnedBy, With<crate::space::Ship>>,
-) {
-    let mut removed = std::collections::HashSet::new();
-    while let Ok(contact_event) = events.contact_events.pop() {
-        match contact_event {
-            bevy_rapier2d::rapier::ncollide::pipeline::narrow_phase::ContactEvent::Started(
-                h1,
-                h2,
-            ) => {
-                let entity1 = Entity::from_bits(
-                    bodies
-                        .get(colliders.get(h1).unwrap().parent())
-                        .unwrap()
-                        .user_data as u64,
-                );
-                if removed.contains(&entity1) {
-                    continue;
-                }
-                let entity2 = Entity::from_bits(
-                    bodies
-                        .get(colliders.get(h2).unwrap().parent())
-                        .unwrap()
-                        .user_data as u64,
-                );
-                if removed.contains(&entity2) {
-                    continue;
-                }
-                if let Ok(owner1) = ship_owner.get(entity1) {
-                    if let Ok(owner2) = ship_owner.get(entity2) {
-                        if owner1 != owner2 {
-                            commands
-                                .despawn_recursive(entity1)
-                                .despawn_recursive(entity2);
-                            removed.insert(entity1);
-                            removed.insert(entity2);
-                        }
-                    }
-                }
-            }
-            _ => (),
-        }
     }
 }
 

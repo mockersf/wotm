@@ -117,7 +117,9 @@ impl bevy::app::Plugin for Plugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_system(spawn_ship)
             .add_system(orbite_around)
-            .add_system(move_towards);
+            .add_system(move_towards)
+            .add_system(ship_collision)
+            .add_system(explode);
     }
 }
 pub struct SpawnShipProgress;
@@ -352,5 +354,105 @@ fn move_towards(
         body.linvel = linvel * towards.speed * time.delta_seconds;
         body.position.rotation =
             bevy_rapier2d::na::UnitComplex::from_angle(rot - std::f32::consts::FRAC_PI_2);
+    }
+}
+
+pub fn ship_collision(
+    commands: &mut Commands,
+    events: Res<bevy_rapier2d::physics::EventQueue>,
+    bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
+    colliders: Res<bevy_rapier2d::rapier::geometry::ColliderSet>,
+    ship_owner: Query<(&crate::game::OwnedBy, &GlobalTransform), With<crate::space::Ship>>,
+    asset_handles: Res<crate::AssetHandles>,
+) {
+    let mut removed = std::collections::HashSet::new();
+    while let Ok(contact_event) = events.contact_events.pop() {
+        match contact_event {
+            bevy_rapier2d::rapier::ncollide::pipeline::narrow_phase::ContactEvent::Started(
+                h1,
+                h2,
+            ) => {
+                let entity1 = Entity::from_bits(
+                    bodies
+                        .get(colliders.get(h1).unwrap().parent())
+                        .unwrap()
+                        .user_data as u64,
+                );
+                if removed.contains(&entity1) {
+                    continue;
+                }
+                let entity2 = Entity::from_bits(
+                    bodies
+                        .get(colliders.get(h2).unwrap().parent())
+                        .unwrap()
+                        .user_data as u64,
+                );
+                if removed.contains(&entity2) {
+                    continue;
+                }
+                if let Ok((owner1, gt1)) = ship_owner.get(entity1) {
+                    if let Ok((owner2, gt2)) = ship_owner.get(entity2) {
+                        if owner1 != owner2 {
+                            commands
+                                .despawn_recursive(entity1)
+                                .despawn_recursive(entity2);
+                            removed.insert(entity1);
+                            removed.insert(entity2);
+
+                            let explosion_handle =
+                                asset_handles.get_game_handles_unsafe().explosion_handle;
+                            commands
+                                .spawn(SpriteSheetBundle {
+                                    sprite: TextureAtlasSprite {
+                                        index: 0,
+                                        ..Default::default()
+                                    },
+                                    texture_atlas: explosion_handle.clone(),
+                                    transform: (*gt1).into(),
+                                    ..Default::default()
+                                })
+                                .with(Explosion {
+                                    timer: Timer::from_seconds(0.1, true),
+                                });
+                            commands
+                                .spawn(SpriteSheetBundle {
+                                    sprite: TextureAtlasSprite {
+                                        index: 0,
+                                        ..Default::default()
+                                    },
+                                    texture_atlas: explosion_handle,
+                                    transform: (*gt2).into(),
+                                    ..Default::default()
+                                })
+                                .with(Explosion {
+                                    timer: Timer::from_seconds(0.1, true),
+                                });
+                        }
+                    }
+                }
+            }
+            _ => (),
+        }
+    }
+}
+
+struct Explosion {
+    timer: Timer,
+}
+fn explode(
+    commands: &mut Commands,
+    time: Res<Time>,
+    mut query: Query<(&mut Explosion, &mut TextureAtlasSprite, Entity)>,
+) {
+    for (mut explosion, mut atlas_sprite, entity) in query.iter_mut() {
+        explosion.timer.tick(time.delta_seconds);
+        if explosion.timer.just_finished {
+            match atlas_sprite.index {
+                6 => {
+                    commands.despawn_recursive(entity);
+                }
+                n => atlas_sprite.index = n + 1,
+            }
+        }
     }
 }
