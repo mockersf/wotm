@@ -16,6 +16,12 @@ impl RotationDirection {
             RotationDirection::CounterClockwise => 1.,
         }
     }
+    pub fn opposite(&self) -> Self {
+        match self {
+            RotationDirection::Clockwise => RotationDirection::CounterClockwise,
+            RotationDirection::CounterClockwise => RotationDirection::Clockwise,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -34,11 +40,29 @@ pub struct Orbiter {
     pub rotation: Rotation,
 }
 
+const SHIP_ORBITING_DISTANCE: f32 = 50.;
+
 impl Orbiter {
     pub fn every(speed: f32, around: Entity, direction: RotationDirection, distance: f32) -> Self {
         Self {
             speed,
             offset: rand::thread_rng().gen_range(0., 2. * std::f32::consts::PI),
+            direction,
+            distance,
+            around,
+            rotation: Rotation::Free,
+        }
+    }
+    pub fn every_with_offset(
+        speed: f32,
+        around: Entity,
+        direction: RotationDirection,
+        distance: f32,
+        offset: f32,
+    ) -> Self {
+        Self {
+            speed,
+            offset,
             direction,
             distance,
             around,
@@ -182,7 +206,7 @@ fn spawn_ship(
                 rand::thread_rng().gen_range(0.5, 1.),
                 entity,
                 spawn.rotation_direction,
-                spawn.scale * 50.,
+                spawn.scale * SHIP_ORBITING_DISTANCE,
             );
 
             let mut translation = global_transform.translation.clone();
@@ -276,16 +300,19 @@ pub fn go_from_to_rapier(from: Vector<f32>, to: Vector<f32>) -> (Vector<f32>, f3
 }
 
 fn move_towards(
+    commands: &mut Commands,
     time: Res<Time>,
     mut bodies: ResMut<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
     movers: Query<(
         Entity,
         &bevy_rapier2d::physics::RigidBodyHandleComponent,
         &MoveTowards,
+        &crate::game::OwnedBy,
     )>,
     centers: Query<&GlobalTransform>,
+    target_spawn: Query<(&SpawnShip, &crate::game::OwnedBy)>,
 ) {
-    for (moving, rigid_body, towards) in movers.iter() {
+    for (moving, rigid_body, towards, owned_by) in movers.iter() {
         let mut body = bodies.get_mut(rigid_body.handle()).unwrap();
 
         let target = centers.get(towards.towards).unwrap();
@@ -298,6 +325,29 @@ fn move_towards(
                 target.translation.y - origin.translation.y,
             ),
         );
+
+        if let Ok((spawn, moon_owned_by)) = target_spawn.get(towards.towards) {
+            if origin.translation.distance(target.translation)
+                < spawn.scale * SHIP_ORBITING_DISTANCE
+            {
+                commands.remove_one::<MoveTowards>(moving);
+                commands.insert_one(
+                    moving,
+                    Orbiter::every_with_offset(
+                        rand::thread_rng().gen_range(0.5, 1.),
+                        towards.towards,
+                        if owned_by == moon_owned_by {
+                            spawn.rotation_direction
+                        } else {
+                            spawn.rotation_direction.opposite()
+                        },
+                        spawn.scale * SHIP_ORBITING_DISTANCE,
+                        rot,
+                    ),
+                );
+            }
+        }
+
         body.linvel = linvel * towards.speed * time.delta_seconds;
         body.position.rotation =
             bevy_rapier2d::na::UnitComplex::from_angle(rot - std::f32::consts::FRAC_PI_2);
