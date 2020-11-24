@@ -334,7 +334,7 @@ fn move_towards(
                 commands.insert_one(
                     moving,
                     Orbiter::every_with_offset(
-                        rand::thread_rng().gen_range(0.5, 1.),
+                        rand::thread_rng().gen_range(0.8, 1.2),
                         towards.towards,
                         if owned_by == moon_owned_by {
                             spawn.rotation_direction
