@@ -461,14 +461,53 @@ fn rotate_on_self(time: Res<Time>, mut query: Query<(&RotateOnSelf, &mut Transfo
     }
 }
 
-fn print_events(_events: Res<bevy_rapier2d::physics::EventQueue>) {
-    // while let Ok(proximity_event) = events.proximity_events.pop() {
-    //     println!("Received proximity event: {:?}", proximity_event);
-    // }
-
-    // while let Ok(contact_event) = events.contact_events.pop() {
-    //     println!("Received contact event: {:?}", contact_event);
-    // }
+fn print_events(
+    commands: &mut Commands,
+    events: Res<bevy_rapier2d::physics::EventQueue>,
+    bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
+    colliders: Res<bevy_rapier2d::rapier::geometry::ColliderSet>,
+    ship_owner: Query<&crate::game::OwnedBy, With<crate::space::Ship>>,
+) {
+    let mut removed = std::collections::HashSet::new();
+    while let Ok(contact_event) = events.contact_events.pop() {
+        match contact_event {
+            bevy_rapier2d::rapier::ncollide::pipeline::narrow_phase::ContactEvent::Started(
+                h1,
+                h2,
+            ) => {
+                let entity1 = Entity::from_bits(
+                    bodies
+                        .get(colliders.get(h1).unwrap().parent())
+                        .unwrap()
+                        .user_data as u64,
+                );
+                if removed.contains(&entity1) {
+                    continue;
+                }
+                let entity2 = Entity::from_bits(
+                    bodies
+                        .get(colliders.get(h2).unwrap().parent())
+                        .unwrap()
+                        .user_data as u64,
+                );
+                if removed.contains(&entity2) {
+                    continue;
+                }
+                if let Ok(owner1) = ship_owner.get(entity1) {
+                    if let Ok(owner2) = ship_owner.get(entity2) {
+                        if owner1 != owner2 {
+                            commands
+                                .despawn_recursive(entity1)
+                                .despawn_recursive(entity2);
+                            removed.insert(entity1);
+                            removed.insert(entity2);
+                        }
+                    }
+                }
+            }
+            _ => (),
+        }
+    }
 }
 
 fn menu_ship_behaviour(

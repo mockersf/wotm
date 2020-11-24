@@ -140,14 +140,6 @@ fn setup_game(
                     ..Default::default()
                 })
                 .with(orbiter)
-                .with(
-                    bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
-                        .angvel(self_rotation)
-                        .position(bevy_rapier2d::na::Isometry2::translation(
-                            start_position.x + shift_left,
-                            start_position.y,
-                        )),
-                )
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
                 .with(crate::space::SpawnShip::every(
                     5.,
@@ -156,7 +148,18 @@ fn setup_game(
                     } else {
                         crate::space::RotationDirection::CounterClockwise
                     },
-                ))
+                ));
+            let entity = commands.current_entity().unwrap();
+            commands.with(
+                bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                    .angvel(self_rotation)
+                    .position(bevy_rapier2d::na::Isometry2::translation(
+                        start_position.x + shift_left,
+                        start_position.y,
+                    ))
+                    .user_data(entity.to_bits() as u128),
+            );
+            commands
                 .with_children(|p| {
                     p.spawn((crate::space::SpawnShipProgress,));
                 })

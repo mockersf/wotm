@@ -212,28 +212,29 @@ fn spawn_ship(
             let mut translation = global_transform.translation.clone();
             translation.z = crate::Z_SHIP;
 
-            commands
-                .spawn(SpriteBundle {
-                    transform: Transform {
-                        translation,
-                        scale: Vec3::splat(spawn.scale * 0.15),
-                        ..Default::default()
-                    },
-                    material: ship.clone(),
+            commands.spawn(SpriteBundle {
+                transform: Transform {
+                    translation,
+                    scale: Vec3::splat(spawn.scale * 0.15),
                     ..Default::default()
-                })
+                },
+                material: ship.clone(),
+                ..Default::default()
+            });
+            let entity = commands.current_entity().unwrap();
+            commands
                 .with(
-                    bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic().translation(
-                        global_transform.translation.x,
-                        global_transform.translation.y,
-                    ),
+                    bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                        .translation(
+                            global_transform.translation.x,
+                            global_transform.translation.y,
+                        )
+                        .user_data(entity.to_bits() as u128),
                 )
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
                     spawn.scale * 5.,
-                ))
-                .with(orbiter)
-                .with(owned_by.clone())
-                .with(Ship);
+                ));
+            commands.with(orbiter).with(owned_by.clone()).with(Ship);
         }
     }
 }
