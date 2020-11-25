@@ -32,9 +32,10 @@ impl bevy::app::Plugin for Plugin {
             .add_system(keyboard_input_system)
             .add_system(ui::setup)
             .add_system(ui::interaction)
-            .add_system(ui::ui_update_on_interaction_event)
             .add_system(ui::ui_update)
+            .add_system(ui::ui_update_on_interaction_event)
             .add_system(ui::orders)
+            .add_system(ui::change_ratio_ui)
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
             .add_system(setup_game)
             .add_system(setup_finish)
@@ -276,6 +277,7 @@ pub struct Game {
     pub targeted: Option<Entity>,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum Ratio {
     ThreeQuarter,
     Half,
@@ -289,6 +291,17 @@ impl Default for Ratio {
     }
 }
 
+impl std::fmt::Display for Ratio {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Ratio::All => write!(f, "100%"),
+            Ratio::ThreeQuarter => write!(f, "75%"),
+            Ratio::Half => write!(f, "50%"),
+            Ratio::OneQuarter => write!(f, "25%"),
+        }
+    }
+}
+
 impl Ratio {
     pub fn next(&mut self) {
         *self = match self {
@@ -297,6 +310,37 @@ impl Ratio {
             Ratio::OneQuarter => Ratio::All,
             Ratio::All => Ratio::ThreeQuarter,
         }
+    }
+
+    pub fn as_usize(&self) -> usize {
+        match self {
+            Ratio::All => 4,
+            Ratio::ThreeQuarter => 3,
+            Ratio::Half => 2,
+            Ratio::OneQuarter => 1,
+        }
+    }
+    pub fn from_usize(i: usize) -> Self {
+        match i {
+            1 => Ratio::OneQuarter,
+            2 => Ratio::Half,
+            3 => Ratio::ThreeQuarter,
+            _ => Ratio::All,
+        }
+    }
+    pub fn of(&self, i: usize) -> usize {
+        if i == 0 {
+            return 0;
+        }
+        1.max(
+            (i as f32
+                * match self {
+                    Ratio::ThreeQuarter => 0.75,
+                    Ratio::Half => 0.5,
+                    Ratio::OneQuarter => 0.25,
+                    Ratio::All => 1.,
+                }) as usize,
+        )
     }
 }
 

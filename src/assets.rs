@@ -32,6 +32,9 @@ pub struct AssetHandles {
     selection_handle: Option<Handle<ColorMaterial>>,
     font_main_handle: Option<Handle<Font>>,
     font_sub_handle: Option<Handle<Font>>,
+    level_placeholder: Option<Handle<ColorMaterial>>,
+    level: Option<Handle<ColorMaterial>>,
+
     game: Option<GameHandles>,
 
     color_spawning_self: Option<Handle<ColorMaterial>>,
@@ -117,6 +120,23 @@ impl AssetHandles {
             self.selection_handle = Some(colormaterial!(mats, assets, "ui/dotBlue.png"));
         }
         self.selection_handle.as_ref().unwrap().clone()
+    }
+
+    pub fn get_ui_level(
+        &mut self,
+        assets: &AssetServer,
+        mats: &mut Assets<ColorMaterial>,
+    ) -> (Handle<ColorMaterial>, Handle<ColorMaterial>) {
+        if self.level.is_none() {
+            self.level = Some(colormaterial!(mats, assets, "ui/squareGreen.png"));
+        }
+        if self.level_placeholder.is_none() {
+            self.level_placeholder = Some(colormaterial!(mats, assets, "ui/square_shadow.png"));
+        }
+        (
+            self.level.as_ref().unwrap().clone(),
+            self.level_placeholder.as_ref().unwrap().clone(),
+        )
     }
 
     pub fn get_font_main_handle(&mut self, assets: &AssetServer) -> Handle<Font> {

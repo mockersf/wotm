@@ -6,6 +6,8 @@ use super::*;
 pub struct UiSelected;
 pub struct UiHighlighted;
 
+pub struct UiGameInteractionBlock;
+
 pub fn setup(
     commands: &mut Commands,
     (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
@@ -33,6 +35,7 @@ pub fn setup(
                 material: material_none.clone(),
                 ..Default::default()
             })
+            .with(bevy::ui::FocusPolicy::Block)
             .with_children(|parent| {
                 parent
                     .spawn(NodeBundle {
@@ -96,6 +99,7 @@ pub fn setup(
                 ..Default::default()
             })
             .with(ScreenTag)
+            .with(UiGameInteractionBlock)
             .current_entity()
             .unwrap();
     }
@@ -135,6 +139,7 @@ pub fn focus_system(
     touches_input: Res<Touches>,
     wnds: Res<Windows>,
     mut events: ResMut<Events<InteractionEvent>>,
+    block_query: Query<(&GlobalTransform, &Node), With<UiGameInteractionBlock>>,
     mut node_query: Query<(
         Entity,
         &InteractionBox,
@@ -153,6 +158,21 @@ pub fn focus_system(
             touch.position.x - wnds.get_primary().unwrap().width() as f32 / 2.,
             touch.position.y - wnds.get_primary().unwrap().height() as f32 / 2.,
         );
+    }
+    for (global_transform, node) in block_query.iter() {
+        let position = global_transform.translation;
+        let ui_position = position.truncate();
+        let extents = node.size / 2.0;
+        let min = ui_position - extents;
+        let max = ui_position + extents;
+        if (min.x..max.x)
+            .contains(&(state.cursor_position.x + wnds.get_primary().unwrap().width() as f32 / 2.))
+            && (min.y..max.y).contains(
+                &(state.cursor_position.y + wnds.get_primary().unwrap().height() as f32 / 2.),
+            )
+        {
+            return;
+        }
     }
 
     if mouse_button_input.just_released(MouseButton::Left) || touches_input.just_released(0) {
@@ -268,6 +288,7 @@ pub fn interaction(
                                 commands.despawn_recursive(*entity);
                             }
                         }
+                        game.ratio = super::Ratio::default();
                     } else {
                         game.ratio.next()
                     }
@@ -376,15 +397,22 @@ pub fn interaction(
     }
 }
 
-pub struct UiOwner;
-pub struct UiShipCount;
-pub struct UiUnderAttack;
+pub enum UiElement {
+    Owner,
+    ShipCount,
+    Status,
+    SelectedRatio,
+    SelectedCount,
+}
+
+pub struct Panel(Entity);
 
 pub fn ui_update_on_interaction_event(
     commands: &mut Commands,
     game: Res<Game>,
     mut asset_handles: ResMut<crate::AssetHandles>,
     assets: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     (mut event_reader, events): (
         Local<EventReader<InteractionEvent>>,
         Res<Events<InteractionEvent>>,
@@ -395,11 +423,12 @@ pub fn ui_update_on_interaction_event(
     query_ui_highlighted: Query<(Entity, Option<&Children>), With<UiHighlighted>>,
 ) {
     let font = asset_handles.get_font_main_handle(&assets);
+    let color_none = materials.add(Color::NONE.into());
     for event in event_reader.iter(&events) {
-        let (moon_entity, ui_target_entity, children) = match event {
+        let (moon_entity, ui_target_entity, children, main) = match event {
             InteractionEvent::Clicked(None) => {
                 if let Some((ui_entity, children)) = query_ui_selected.iter().next() {
-                    (None, ui_entity, children)
+                    (None, ui_entity, children, true)
                 } else {
                     continue;
                 }
@@ -413,11 +442,11 @@ pub fn ui_update_on_interaction_event(
                     }
                 }
                 let (ui_entity, children) = query_ui_selected.iter().next().unwrap();
-                (Some(moon_entity), ui_entity, children)
+                (Some(moon_entity), ui_entity, children, true)
             }
             InteractionEvent::Hovered(None) => {
                 if let Some((ui_entity, children)) = query_ui_highlighted.iter().next() {
-                    (None, ui_entity, children)
+                    (None, ui_entity, children, false)
                 } else {
                     continue;
                 }
@@ -426,12 +455,12 @@ pub fn ui_update_on_interaction_event(
                 let (ui_entity, children) = query_ui_highlighted.iter().next().unwrap();
                 if let Some(selected) = game.selected {
                     if *moon_entity == selected {
-                        (None, ui_entity, children)
+                        (None, ui_entity, children, false)
                     } else {
-                        (Some(moon_entity), ui_entity, children)
+                        (Some(moon_entity), ui_entity, children, false)
                     }
                 } else {
-                    (Some(moon_entity), ui_entity, children)
+                    (Some(moon_entity), ui_entity, children, false)
                 }
             }
         };
@@ -470,6 +499,7 @@ pub fn ui_update_on_interaction_event(
                     },
                     ..Default::default()
                 })
+                .with(Panel(ui_target_entity))
                 .current_entity()
                 .unwrap();
 
@@ -494,7 +524,8 @@ pub fn ui_update_on_interaction_event(
                     },
                     ..Default::default()
                 })
-                .with(UiOwner)
+                .with(Panel(ui_target_entity))
+                .with(UiElement::Owner)
                 .current_entity()
                 .unwrap();
 
@@ -519,7 +550,8 @@ pub fn ui_update_on_interaction_event(
                     },
                     ..Default::default()
                 })
-                .with(UiShipCount)
+                .with(Panel(ui_target_entity))
+                .with(UiElement::ShipCount)
                 .current_entity()
                 .unwrap();
             let ui_under_attack = commands
@@ -535,7 +567,7 @@ pub fn ui_update_on_interaction_event(
                     text: Text {
                         font: font.clone(),
                         style: TextStyle {
-                            color: crate::ui::ColorScheme::TEXT_DARK,
+                            color: crate::ui::ColorScheme::TEXT_HIGHLIGHT,
                             font_size: 25.,
                             ..Default::default()
                         },
@@ -543,7 +575,8 @@ pub fn ui_update_on_interaction_event(
                     },
                     ..Default::default()
                 })
-                .with(UiUnderAttack)
+                .with(Panel(ui_target_entity))
+                .with(UiElement::Status)
                 .current_entity()
                 .unwrap();
 
@@ -551,18 +584,114 @@ pub fn ui_update_on_interaction_event(
                 ui_target_entity,
                 &[ui_name, ui_owner, ui_ships_orbiting_count, ui_under_attack],
             );
+            if main {
+                let ui_ship_selection = commands
+                    .spawn(NodeBundle {
+                        style: Style {
+                            size: Size {
+                                height: Val::Px(25.),
+                                ..Default::default()
+                            },
+                            align_self: AlignSelf::Center,
+                            ..Default::default()
+                        },
+                        draw: Draw {
+                            is_transparent: true,
+                            ..Default::default()
+                        },
+                        material: color_none.clone(),
+                        ..Default::default()
+                    })
+                    .with(Panel(ui_target_entity))
+                    .with(UiElement::SelectedRatio)
+                    .current_entity()
+                    .unwrap();
+
+                let ui_ship_ratio_count = commands
+                    .spawn(NodeBundle {
+                        style: Style {
+                            size: Size {
+                                height: Val::Px(25.),
+                                ..Default::default()
+                            },
+                            align_self: AlignSelf::Center,
+                            ..Default::default()
+                        },
+                        draw: Draw {
+                            is_transparent: true,
+                            ..Default::default()
+                        },
+                        material: color_none.clone(),
+                        ..Default::default()
+                    })
+                    .current_entity()
+                    .unwrap();
+                commands.with_children(|ratio_count| {
+                    ratio_count
+                        .spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(17.),
+                                    ..Default::default()
+                                },
+                                align_self: AlignSelf::Center,
+                                ..Default::default()
+                            },
+                            text: Text {
+                                font: font.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT_DARK,
+                                    font_size: 17.,
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        })
+                        .with(Panel(ui_target_entity))
+                        .with(UiElement::SelectedRatio);
+                    ratio_count
+                        .spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(17.),
+                                    ..Default::default()
+                                },
+                                align_self: AlignSelf::Center,
+                                ..Default::default()
+                            },
+                            text: Text {
+                                font: font.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT_DARK,
+                                    font_size: 17.,
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        })
+                        .with(Panel(ui_target_entity))
+                        .with(UiElement::SelectedCount);
+                });
+                commands.push_children(ui_target_entity, &[ui_ship_selection, ui_ship_ratio_count]);
+            }
         }
     }
 }
+
 pub fn ui_update(
+    commands: &mut Commands,
     game: Res<Game>,
-    query_ui_selected: Query<&Children, With<UiSelected>>,
-    query_ui_highlighted: Query<&Children, With<UiHighlighted>>,
+    mut asset_handles: ResMut<crate::AssetHandles>,
+    assets: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    query_ui_selected: Query<Entity, With<UiSelected>>,
+    query_ui_highlighted: Query<Entity, With<UiHighlighted>>,
     query_owner: Query<&crate::game::OwnedBy>,
     query_ships: Query<(&crate::space::Orbiter, &crate::game::OwnedBy), With<crate::space::Ship>>,
-    mut ui_owner: Query<&mut Text, With<UiOwner>>,
-    mut ui_ship_count: Query<&mut Text, With<UiShipCount>>,
-    mut ui_under_attack: Query<&mut Text, With<UiUnderAttack>>,
+    mut ui_texts: Query<(&mut Text, &UiElement, &Panel)>,
+    mut ui_nodes: Query<(Entity, Option<&mut Children>, &UiElement, &Panel), Without<Text>>,
 ) {
     for (moon_entity, ui_entity) in
         std::iter::once((game.selected, query_ui_selected.iter().next())).chain(std::iter::once((
@@ -572,41 +701,137 @@ pub fn ui_update(
     {
         if let Some(entity) = moon_entity {
             if let Some(ui_main) = ui_entity {
-                for child in ui_main.iter() {
-                    let owner = query_owner.get(entity).unwrap();
-                    if let Ok(mut owner_text) = ui_owner.get_mut(*child) {
-                        owner_text.value = match owner {
-                            crate::game::OwnedBy::Player(0) => "Owned by you".to_string(),
-                            crate::game::OwnedBy::Player(_) => {
-                                "Owned by another player".to_string()
+                let owner = query_owner.get(entity).unwrap();
+                let ships_orbiting_count = query_ships
+                    .iter()
+                    .filter(|(orbiter, _)| orbiter.around == entity)
+                    .fold(
+                        std::collections::HashMap::new(),
+                        |mut counts, (_, owned_by)| {
+                            let count = counts.entry(owned_by).or_insert(0);
+                            *count += 1;
+                            counts
+                        },
+                    );
+                for (mut ui_text, element, panel) in ui_texts.iter_mut() {
+                    if panel.0 != ui_main {
+                        continue;
+                    }
+                    match element {
+                        UiElement::Owner => {
+                            ui_text.value = match owner {
+                                crate::game::OwnedBy::Player(0) => "Owned by you".to_string(),
+                                crate::game::OwnedBy::Player(_) => {
+                                    "Owned by another player".to_string()
+                                }
+                                crate::game::OwnedBy::Neutral => "Free".to_string(),
+                            };
+                        }
+                        UiElement::ShipCount => {
+                            ui_text.value = match ships_orbiting_count.get(owner).unwrap_or(&0) {
+                                0 => "no ship".to_string(),
+                                1 => "1 ship".to_string(),
+                                n => format!("{} ships", n),
+                            };
+                        }
+                        UiElement::Status => {
+                            if ships_orbiting_count.len() > 1 {
+                                ui_text.value = "Under Attack".to_string();
+                            } else {
+                                ui_text.value = "".to_string();
+                            };
+                        }
+                        UiElement::SelectedRatio => {
+                            if let crate::game::OwnedBy::Player(0) = owner {
+                                ui_text.value = format!("{} ", game.ratio);
+                            } else {
+                                ui_text.value = "".to_string();
                             }
-                            crate::game::OwnedBy::Neutral => "Free".to_string(),
-                        };
+                        }
+                        UiElement::SelectedCount => {
+                            if let crate::game::OwnedBy::Player(0) = owner {
+                                ui_text.value = format!(
+                                    " - {} ship selected",
+                                    game.ratio.of(*ships_orbiting_count
+                                        .get(owner)
+                                        .unwrap_or(&(0 as usize)))
+                                );
+                            } else {
+                                ui_text.value = "".to_string();
+                            }
+                        }
                     }
-                    let ships_orbiting_count = query_ships
-                        .iter()
-                        .filter(|(orbiter, _)| orbiter.around == entity)
-                        .fold(
-                            std::collections::HashMap::new(),
-                            |mut counts, (_, owned_by)| {
-                                let count = counts.entry(owned_by).or_insert(0);
-                                *count += 1;
-                                counts
-                            },
-                        );
+                }
 
-                    if let Ok(mut count_text) = ui_ship_count.get_mut(*child) {
-                        count_text.value = match ships_orbiting_count.get(owner).unwrap_or(&0) {
-                            0 => "no ship".to_string(),
-                            1 => "1 ship".to_string(),
-                            n => format!("{} ships", n),
-                        };
-                    }
-                    if let Ok(mut under_attack) = ui_under_attack.get_mut(*child) {
-                        if ships_orbiting_count.len() > 1 {
-                            under_attack.value = "Under Attack".to_string();
-                        } else {
-                            under_attack.value = "".to_string();
+                if let crate::game::OwnedBy::Player(0) = owner {
+                    for (entity, children, element, panel) in ui_nodes.iter_mut() {
+                        if panel.0 != ui_main {
+                            continue;
+                        }
+
+                        if let UiElement::SelectedRatio = element {
+                            let levels = asset_handles.get_ui_level(&assets, &mut materials);
+                            if let Some(mut children) = children {
+                                for child in children.iter() {
+                                    commands.despawn_recursive(*child);
+                                }
+                                *children = Children::default();
+                            }
+
+                            let mut markers = vec![];
+                            for i in 0..game.ratio.as_usize() {
+                                commands
+                                    .spawn(ImageBundle {
+                                        material: levels.0.clone(),
+                                        style: Style {
+                                            margin: Rect {
+                                                left: Val::Px(5.),
+                                                right: Val::Px(5.),
+                                                ..Default::default()
+                                            },
+                                            ..Default::default()
+                                        },
+                                        draw: Draw {
+                                            is_transparent: true,
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .with_bundle((
+                                        Button,
+                                        bevy::ui::Interaction::default(),
+                                        bevy::ui::FocusPolicy::Block,
+                                    ))
+                                    .with(Ratio::from_usize(i + 1));
+                                markers.push(commands.current_entity().unwrap());
+                            }
+                            for i in game.ratio.as_usize()..4 {
+                                commands
+                                    .spawn(ImageBundle {
+                                        material: levels.1.clone(),
+                                        style: Style {
+                                            margin: Rect {
+                                                left: Val::Px(5.),
+                                                right: Val::Px(5.),
+                                                ..Default::default()
+                                            },
+                                            ..Default::default()
+                                        },
+                                        draw: Draw {
+                                            is_transparent: true,
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .with_bundle((
+                                        Button,
+                                        bevy::ui::Interaction::default(),
+                                        bevy::ui::FocusPolicy::Block,
+                                    ))
+                                    .with(Ratio::from_usize(i + 1));
+                                markers.push(commands.current_entity().unwrap());
+                            }
+                            commands.insert_children(entity, 0, &markers);
                         }
                     }
                 }
@@ -647,12 +872,7 @@ pub fn orders(
             .filter(|(_, orbiter, owned_by)| {
                 orbiter.around == selected && **owned_by == crate::game::OwnedBy::Player(0)
             })
-            .take(match game.ratio {
-                Ratio::All => ship_count,
-                Ratio::ThreeQuarter => (ship_count as f32 * 3. / 4.) as usize,
-                Ratio::Half => (ship_count as f32 / 2.) as usize,
-                Ratio::OneQuarter => (ship_count as f32 / 4.) as usize,
-            })
+            .take(game.ratio.of(ship_count))
             .for_each(|(entity, _, _)| {
                 commands.remove_one::<crate::space::Orbiter>(entity);
                 commands.insert_one(
@@ -664,5 +884,20 @@ pub fn orders(
                     },
                 );
             });
+    }
+}
+
+pub fn change_ratio_ui(
+    mut game: ResMut<Game>,
+    mut interaction_query: Query<
+        (&bevy::ui::Interaction, &Ratio),
+        (With<Button>, Mutated<bevy::ui::Interaction>),
+    >,
+) {
+    for (interaction, button_ratio) in interaction_query.iter_mut() {
+        match *interaction {
+            bevy::ui::Interaction::Clicked => game.ratio = *button_ratio,
+            _ => (),
+        }
     }
 }

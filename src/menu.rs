@@ -402,15 +402,11 @@ fn button_system(
     mut screen: ResMut<Screen>,
 
     mut interaction_query: Query<
-        (
-            &Button,
-            &Interaction,
-            &crate::ui::button::ButtonId<MenuButton>,
-        ),
-        Mutated<Interaction>,
+        (&Interaction, &crate::ui::button::ButtonId<MenuButton>),
+        (With<Button>, Mutated<Interaction>),
     >,
 ) {
-    for (_button, interaction, button_id) in interaction_query.iter_mut() {
+    for (interaction, button_id) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Clicked => match button_id.0 {
                 #[cfg(not(target_arch = "wasm32"))]
