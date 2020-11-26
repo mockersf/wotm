@@ -39,6 +39,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
             .add_system(setup_game)
             .add_system(setup_finish)
+            .add_system(change_owner)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
@@ -71,22 +72,29 @@ fn setup_game(
 
         let shift_left = -200.;
 
-        commands
-            .spawn(SpriteBundle {
-                transform: Transform {
-                    scale: Vec3::splat(0.10),
-                    translation: Vec3::new(shift_left, 0., crate::Z_PLANET),
-                    ..Default::default()
-                },
-                material: planet.0.clone(),
+        commands.spawn(SpriteBundle {
+            transform: Transform {
+                scale: Vec3::splat(0.10),
+                translation: Vec3::new(shift_left, 0., crate::Z_PLANET),
                 ..Default::default()
-            })
+            },
+            material: planet.0.clone(),
+            ..Default::default()
+        });
+        let planet_entity = commands.current_entity().unwrap();
+        commands
             .with(
                 bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
                     .position(bevy_rapier2d::na::Isometry2::translation(shift_left, 0.))
-                    .angvel(rand::thread_rng().gen_range(-1., 1.) * 0.2),
+                    .angvel(rand::thread_rng().gen_range(-1., 1.) * 0.2)
+                    .user_data(planet_entity.to_bits() as u128),
             )
-            .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
+            .with(
+                bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
+                    planet.1 as f32 / 10. * 9. / 10.,
+                )
+                .sensor(true),
+            )
             .with(Planet {
                 name: asset_handles
                     .get_planet_names()
@@ -116,7 +124,7 @@ fn setup_game(
                 } else {
                     crate::space::RotationDirection::CounterClockwise
                 },
-                (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(-20., 20.),
+                (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(0., 30.),
             )
             .self_rotate();
             let start_position =
@@ -345,6 +353,31 @@ impl Ratio {
 }
 
 #[derive(PartialEq)]
-pub enum GameEvents {}
+pub enum GameEvents {
+    ShipDestroyed(Entity),
+    PlanetShield(Entity),
+    MoonConquered(Entity, OwnedBy),
+    PlanetConquered(Entity),
+}
 
 pub enum InterestingEvent {}
+
+fn change_owner(
+    mut game_events: ResMut<Events<crate::game::GameEvents>>,
+    query_moon: Query<(Entity, &OwnedBy), With<crate::game::Moon>>,
+    query_ships: Query<(&crate::space::Orbiter, &OwnedBy), With<crate::space::Ship>>,
+) {
+    for (entity, owner) in query_moon.iter() {
+        let owners = query_ships
+            .iter()
+            .filter(|(orbiter, _)| orbiter.around == entity)
+            .map(|(_, owner)| owner)
+            .collect::<std::collections::HashSet<_>>();
+        if owners.len() == 1 {
+            let new_owner = owners.into_iter().next().unwrap();
+            if *owner != *new_owner {
+                game_events.send(GameEvents::MoonConquered(entity, new_owner.clone()));
+            }
+        }
+    }
+}
