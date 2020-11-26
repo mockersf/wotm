@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rand::{seq::SliceRandom, Rng};
+use rand::{prelude::IteratorRandom, seq::SliceRandom, Rng};
 use tracing::info;
 
 const CURRENT_SCREEN: crate::Screen = crate::Screen::Game;
@@ -40,6 +40,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(setup_game)
             .add_system(setup_finish)
             .add_system(change_owner)
+            .add_system(planet_defense)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
@@ -107,10 +108,11 @@ fn setup_game(
                 radius: planet.1 as f32 / 10. + 5.,
             })
             .with(OwnedBy::Neutral)
+            .with(PlanetFleet::new())
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
-        let nb_moon = rand::thread_rng().gen_range(2, 4);
+        let nb_moon = 3; //rand::thread_rng().gen_range(2, 4);
 
         let player_start_moon = rand::thread_rng().gen_range(0, nb_moon);
 
@@ -149,15 +151,17 @@ fn setup_game(
                     ..Default::default()
                 })
                 .with(orbiter)
-                .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true))
-                .with(crate::space::SpawnShip::every(
-                    5.,
-                    if self_rotation < 0. {
-                        crate::space::RotationDirection::Clockwise
-                    } else {
-                        crate::space::RotationDirection::CounterClockwise
-                    },
-                ));
+                .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true));
+            let rot = if self_rotation < 0. {
+                crate::space::RotationDirection::Clockwise
+            } else {
+                crate::space::RotationDirection::CounterClockwise
+            };
+            if player_start_moon == i {
+                commands.with(crate::space::SpawnShipType::Basic.to_components(rot));
+            } else {
+                commands.with(crate::space::SpawnShipType::Neutral.to_components(rot));
+            }
             let entity = commands.current_entity().unwrap();
             commands.with(
                 bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
@@ -354,7 +358,7 @@ impl Ratio {
 
 #[derive(PartialEq)]
 pub enum GameEvents {
-    ShipDestroyed(Entity),
+    ShipDamaged(Entity, i32),
     PlanetShield(Entity),
     MoonConquered(Entity, OwnedBy),
     PlanetConquered(Entity),
@@ -377,6 +381,95 @@ fn change_owner(
             let new_owner = owners.into_iter().next().unwrap();
             if *owner != *new_owner {
                 game_events.send(GameEvents::MoonConquered(entity, new_owner.clone()));
+            }
+        }
+    }
+}
+
+pub struct PlanetFleet {
+    timer: Timer,
+    last_happened: f32,
+    iteration: f32,
+}
+impl PlanetFleet {
+    pub fn new() -> Self {
+        let mut timer = Timer::from_seconds(1., true);
+        let offset = timer.duration * -15.;
+        timer.elapsed = offset;
+        Self {
+            timer,
+            last_happened: offset,
+            iteration: 0.,
+        }
+    }
+}
+
+pub fn planet_defense(
+    commands: &mut Commands,
+    time: Res<Time>,
+    asset_handles: Res<crate::AssetHandles>,
+    mut planet_fleet: Query<(Entity, &GlobalTransform, &mut PlanetFleet)>,
+    moons: Query<(Entity, &OwnedBy), With<Moon>>,
+) {
+    for (planet, gt, mut fleet) in planet_fleet.iter_mut() {
+        fleet.timer.tick(time.delta_seconds);
+        fleet.last_happened += time.delta_seconds;
+        if fleet.timer.just_finished {
+            let ratio: f32 = 0.2;
+            if rand::thread_rng().gen_bool(ratio as f64) {
+                let game_handles = asset_handles.get_game_handles_unsafe();
+
+                let ship = game_handles.ships[2]
+                    .choose(&mut rand::thread_rng())
+                    .unwrap();
+                let mut translation = gt.translation.clone();
+                translation.z = crate::Z_SHIP;
+                let player_moons = moons
+                    .iter()
+                    .filter(|(_, moon_owner)| **moon_owner == OwnedBy::Player(0))
+                    .count();
+                let mut hit_points_to_spawn = ((ratio
+                    * (fleet.last_happened / fleet.timer.duration + fleet.iteration)
+                    / 2.5) as i32
+                    * player_moons as i32)
+                    - 1;
+                let mut i = -0.2;
+                while hit_points_to_spawn > 0 {
+                    let spawn_hit_points = 0.max(rand::thread_rng().gen_range(-4, 2));
+                    // println!("ship {:?}", spawn_hit_points);
+                    let moon = moons.iter().choose(&mut rand::thread_rng()).unwrap();
+                    commands.spawn(SpriteBundle {
+                        transform: Transform {
+                            translation,
+                            scale: Vec3::splat(0.15),
+                            ..Default::default()
+                        },
+                        material: ship.clone(),
+                        ..Default::default()
+                    });
+                    let entity = commands.current_entity().unwrap();
+                    commands
+                        .with(
+                            bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                                .translation(gt.translation.x + i, gt.translation.y + i)
+                                .user_data(entity.to_bits() as u128),
+                        )
+                        .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(5.));
+                    commands
+                        .with(crate::space::MoveTowards {
+                            speed: 2000.,
+                            from: planet,
+                            towards: moon.0,
+                        })
+                        .with(crate::game::OwnedBy::Neutral)
+                        .with(crate::space::Ship {
+                            hit_points: spawn_hit_points,
+                        });
+                    hit_points_to_spawn -= spawn_hit_points;
+                    i += 0.1;
+                }
+                fleet.last_happened = 0.;
+                fleet.iteration += 1.;
             }
         }
     }

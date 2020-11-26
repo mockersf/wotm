@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-pub struct Ship;
+pub struct Ship {
+    pub hit_points: i32,
+}
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum RotationDirection {
     Clockwise,
     CounterClockwise,
@@ -84,10 +86,52 @@ pub struct MoveTowards {
     pub from: Entity,
 }
 
+pub enum SpawnShipType {
+    Neutral,
+    Basic,
+    Small,
+    Large,
+}
+
+impl SpawnShipType {
+    pub fn to_components(&self, rotation_direction: RotationDirection) -> SpawnShip {
+        let base_delay = 5.;
+        let base_hit_points = 2;
+        match self {
+            SpawnShipType::Neutral => SpawnShip {
+                every: Timer::from_seconds(base_delay * 1.2, true),
+                scale: 1.,
+                rotation_direction,
+                hit_points: base_hit_points,
+            },
+            SpawnShipType::Basic => SpawnShip {
+                every: Timer::from_seconds(base_delay, true),
+                scale: 1.,
+                rotation_direction,
+                hit_points: base_hit_points,
+            },
+            SpawnShipType::Small => SpawnShip {
+                every: Timer::from_seconds(base_delay / 2., true),
+                scale: 1.,
+                rotation_direction,
+                hit_points: base_hit_points / 2,
+            },
+            SpawnShipType::Large => SpawnShip {
+                every: Timer::from_seconds(base_delay * 2., true),
+                scale: 1.,
+                rotation_direction,
+                hit_points: base_hit_points * 2,
+            },
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct SpawnShip {
     pub every: Timer,
     pub scale: f32,
     pub rotation_direction: RotationDirection,
+    pub hit_points: i32,
 }
 
 impl SpawnShip {
@@ -96,6 +140,7 @@ impl SpawnShip {
             every: Timer::from_seconds(duration, true),
             scale: 1.,
             rotation_direction,
+            hit_points: 1,
         }
     }
 
@@ -199,9 +244,6 @@ fn spawn_ship(
         }
 
         if spawn.every.just_finished {
-            if let crate::game::OwnedBy::Neutral = owned_by {
-                spawn.every.duration *= 1.02;
-            }
             let ship = game_handles.ships[match owned_by {
                 crate::game::OwnedBy::Player(i) => *i,
                 crate::game::OwnedBy::Neutral => 2,
@@ -240,7 +282,9 @@ fn spawn_ship(
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
                     spawn.scale * 5.,
                 ));
-            commands.with(orbiter).with(owned_by.clone()).with(Ship);
+            commands.with(orbiter).with(owned_by.clone()).with(Ship {
+                hit_points: spawn.hit_points,
+            });
         }
     }
 }
@@ -366,7 +410,7 @@ pub fn ship_collision(
     bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
     colliders: Res<bevy_rapier2d::rapier::geometry::ColliderSet>,
     mut game_events: ResMut<Events<crate::game::GameEvents>>,
-    ship_owner: Query<&crate::game::OwnedBy, With<crate::space::Ship>>,
+    ship_owner: Query<(&crate::game::OwnedBy, &crate::space::Ship)>,
 ) {
     let mut removed = std::collections::HashSet::new();
     while let Ok(contact_event) = events.contact_events.pop() {
@@ -393,12 +437,18 @@ pub fn ship_collision(
                 if removed.contains(&entity2) {
                     continue;
                 }
-                if let Ok(owner1) = ship_owner.get(entity1) {
-                    if let Ok(owner2) = ship_owner.get(entity2) {
+                if let Ok((owner1, ship1)) = ship_owner.get(entity1) {
+                    if let Ok((owner2, ship2)) = ship_owner.get(entity2) {
                         if owner1 != owner2 {
-                            game_events.send(crate::game::GameEvents::ShipDestroyed(entity1));
+                            game_events.send(crate::game::GameEvents::ShipDamaged(
+                                entity1,
+                                1.min(ship2.hit_points),
+                            ));
                             removed.insert(entity1);
-                            game_events.send(crate::game::GameEvents::ShipDestroyed(entity2));
+                            game_events.send(crate::game::GameEvents::ShipDamaged(
+                                entity2,
+                                1.min(ship1.hit_points),
+                            ));
                             removed.insert(entity2);
                         }
                     }
@@ -419,8 +469,8 @@ pub fn game_events(
     mut asset_handles: ResMut<crate::AssetHandles>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    ship_transform: Query<&GlobalTransform, With<crate::space::Ship>>,
-    mut query_moon: Query<(&mut crate::space::SpawnShip, &mut crate::game::OwnedBy)>,
+    mut ship_info: Query<(&mut Ship, &GlobalTransform), With<crate::space::Ship>>,
+    mut query_moon: Query<(&crate::space::SpawnShip, &mut crate::game::OwnedBy)>,
     mut query_ships: Query<
         (&mut crate::space::Orbiter, &crate::game::OwnedBy),
         With<crate::space::Ship>,
@@ -429,29 +479,42 @@ pub fn game_events(
 ) {
     for event in event_reader.iter(&events) {
         match event {
-            crate::game::GameEvents::ShipDestroyed(entity) => {
-                commands.despawn_recursive(*entity);
-                let explosion_handle = asset_handles.get_game_handles_unsafe().explosion_handle;
-                if let Ok(gt) = ship_transform.get(*entity) {
-                    commands
-                        .spawn(SpriteSheetBundle {
-                            sprite: TextureAtlasSprite {
-                                index: 0,
+            crate::game::GameEvents::ShipDamaged(entity, damage) => {
+                if let Ok((mut ship, gt)) = ship_info.get_mut(*entity) {
+                    ship.hit_points -= damage;
+                    if ship.hit_points <= 0 {
+                        commands.despawn_recursive(*entity);
+                        let explosion_handle =
+                            asset_handles.get_game_handles_unsafe().explosion_handle;
+                        commands
+                            .spawn(SpriteSheetBundle {
+                                sprite: TextureAtlasSprite {
+                                    index: 0,
+                                    ..Default::default()
+                                },
+                                texture_atlas: explosion_handle.clone(),
+                                transform: (*gt).into(),
                                 ..Default::default()
-                            },
-                            texture_atlas: explosion_handle.clone(),
-                            transform: (*gt).into(),
-                            ..Default::default()
-                        })
-                        .with(Explosion {
-                            timer: Timer::from_seconds(0.1, true),
-                        });
+                            })
+                            .with(Explosion {
+                                timer: Timer::from_seconds(0.1, true),
+                            });
+                    }
                 }
             }
             crate::game::GameEvents::MoonConquered(entity, new_owner) => {
-                if let Ok((mut spawnship, mut owner)) = query_moon.get_mut(*entity) {
-                    spawnship.every.elapsed = 0.;
-                    spawnship.every.duration = 5.;
+                if let Ok((spawnship, mut owner)) = query_moon.get_mut(*entity) {
+                    if let crate::game::OwnedBy::Player(0) = *new_owner {
+                        commands.insert_one(
+                            *entity,
+                            SpawnShipType::Basic.to_components(spawnship.rotation_direction),
+                        );
+                    } else {
+                        commands.insert_one(
+                            *entity,
+                            SpawnShipType::Neutral.to_components(spawnship.rotation_direction),
+                        );
+                    }
                     *owner = new_owner.clone();
                     query_ships
                         .iter_mut()
@@ -555,7 +618,7 @@ pub fn planet_collision(
                 != 0
             {
                 if let Ok(crate::game::OwnedBy::Player(0)) = ship_owner.get(ship) {
-                    game_events.send(crate::game::GameEvents::ShipDestroyed(ship));
+                    game_events.send(crate::game::GameEvents::ShipDamaged(ship, 500));
                     game_events.send(crate::game::GameEvents::PlanetShield(planet));
                 }
             } else {
