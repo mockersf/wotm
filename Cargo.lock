@@ -3696,7 +3696,7 @@ dependencies = [
 
 [[package]]
 name = "wotm"
-version = "0.1.17-dev"
+version = "0.1.17"
 dependencies = [
  "asset_io",
  "bevy",
