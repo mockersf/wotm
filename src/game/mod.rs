@@ -57,6 +57,7 @@ pub struct Moon {
 fn setup_game(
     commands: &mut Commands,
     (game_screen, mut game, screen): (Res<crate::GameScreen>, ResMut<Game>, Res<Screen>),
+    config: Res<crate::Config>,
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
     mut events: ResMut<Events<ui::InteractionEvent>>,
@@ -110,7 +111,7 @@ fn setup_game(
                 radius: planet.1 as f32 / 10. + 5.,
             })
             .with(OwnedBy::Neutral)
-            .with(PlanetFleet::new())
+            .with(PlanetFleet::new(&config))
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
@@ -395,13 +396,12 @@ pub struct PlanetFleet {
     iteration: f32,
 }
 impl PlanetFleet {
-    pub fn new() -> Self {
-        let mut timer = Timer::from_seconds(1., true);
-        let offset = timer.duration * -15.;
-        timer.elapsed = offset;
+    pub fn new(config: &crate::Config) -> Self {
+        let mut timer = Timer::from_seconds(config.fleet_timer, true);
+        timer.elapsed = -config.fleet_delay;
         Self {
             timer,
-            last_happened: offset,
+            last_happened: -config.fleet_delay,
             iteration: 0.,
         }
     }
@@ -410,6 +410,7 @@ impl PlanetFleet {
 pub fn planet_defense(
     commands: &mut Commands,
     time: Res<Time>,
+    config: Res<crate::Config>,
     mut game_screen: ResMut<crate::GameScreen>,
     asset_handles: Res<crate::AssetHandles>,
     mut planet_fleet: Query<(Entity, &GlobalTransform, &mut PlanetFleet)>,
@@ -419,8 +420,7 @@ pub fn planet_defense(
         fleet.timer.tick(time.delta_seconds);
         fleet.last_happened += time.delta_seconds;
         if fleet.timer.just_finished {
-            let ratio: f32 = 0.2;
-            if rand::thread_rng().gen_bool(ratio as f64) {
+            if rand::thread_rng().gen_bool(config.fleet_chance as f64) {
                 let game_handles = asset_handles.get_game_handles_unsafe();
 
                 let ship = game_handles.ships[2]
@@ -435,7 +435,7 @@ pub fn planet_defense(
                 if player_moons == 0 {
                     game_screen.current_screen = crate::Screen::Lost;
                 }
-                let mut hit_points_to_spawn = ((ratio
+                let mut hit_points_to_spawn = ((config.fleet_chance
                     * (fleet.last_happened / fleet.timer.duration + fleet.iteration)
                     / 2.5) as i32
                     * player_moons as i32)

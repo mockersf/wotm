@@ -38,10 +38,12 @@ impl Default for Settings {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Config {
+pub struct Config {
     pub bigger_player_ship_rate: f64,
     pub bigger_player_ship_change: f32,
     pub fleet_timer: f32,
+    pub fleet_delay: f32,
+    pub fleet_chance: f32,
 }
 
 impl Default for Config {
@@ -50,6 +52,8 @@ impl Default for Config {
             bigger_player_ship_rate: 0.25,
             bigger_player_ship_change: 1.25,
             fleet_timer: 1.,
+            fleet_delay: 15.,
+            fleet_chance: 0.2,
         }
     }
 }
