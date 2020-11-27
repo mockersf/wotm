@@ -629,18 +629,18 @@ pub fn object_collision(
                 (_, true) => (entity1, entity2),
                 _ => continue,
             };
-            if moon_owner
-                .iter()
-                .filter(|owner| **owner != crate::game::OwnedBy::Player(0))
-                .count()
-                != 0
-            {
-                if let Ok(crate::game::OwnedBy::Player(0)) = ship_owner.get(ship) {
+            if let Ok(crate::game::OwnedBy::Player(0)) = ship_owner.get(ship) {
+                if moon_owner
+                    .iter()
+                    .filter(|owner| **owner != crate::game::OwnedBy::Player(0))
+                    .count()
+                    != 0
+                {
                     game_events.send(crate::game::GameEvents::ShipDamaged(ship, 500));
                     game_events.send(crate::game::GameEvents::PlanetShield(planet));
+                } else {
+                    game_events.send(crate::game::GameEvents::PlanetConquered(planet));
                 }
-            } else {
-                game_events.send(crate::game::GameEvents::PlanetConquered(planet));
             }
         }
     }
