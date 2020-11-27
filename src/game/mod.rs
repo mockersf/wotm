@@ -56,13 +56,15 @@ pub struct Moon {
 
 fn setup_game(
     commands: &mut Commands,
-    (game_screen, _game, screen): (Res<crate::GameScreen>, Res<Game>, Res<Screen>),
+    (game_screen, mut game, screen): (Res<crate::GameScreen>, ResMut<Game>, Res<Screen>),
     time: Res<Time>,
     asset_handles: Res<crate::AssetHandles>,
     mut events: ResMut<Events<ui::InteractionEvent>>,
 ) {
+    game.elapsed += time.delta_seconds;
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
+        game.elapsed = 0.;
 
         let game_handles = asset_handles.get_game_handles_unsafe();
 
@@ -287,6 +289,7 @@ pub struct Game {
     pub selected: Option<Entity>,
     pub ratio: Ratio,
     pub targeted: Option<Entity>,
+    pub elapsed: f32,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -440,12 +443,12 @@ pub fn planet_defense(
                 let mut i = -0.2;
                 while hit_points_to_spawn > 0 {
                     let spawn_hit_points = 0.max(rand::thread_rng().gen_range(-4, 2));
-                    // println!("ship {:?}", spawn_hit_points);
                     let moon = moons.iter().choose(&mut rand::thread_rng()).unwrap();
+                    let scale = (spawn_hit_points as f32 + 3.) / 4.;
                     commands.spawn(SpriteBundle {
                         transform: Transform {
                             translation,
-                            scale: Vec3::splat(0.15),
+                            scale: Vec3::splat(0.15 * scale),
                             ..Default::default()
                         },
                         material: ship.clone(),
@@ -458,7 +461,9 @@ pub fn planet_defense(
                                 .translation(gt.translation.x + i, gt.translation.y + i)
                                 .user_data(entity.to_bits() as u128),
                         )
-                        .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(5.));
+                        .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
+                            5. * scale,
+                        ));
                     commands
                         .with(crate::space::MoveTowards {
                             speed: 2000.,

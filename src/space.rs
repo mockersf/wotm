@@ -89,8 +89,8 @@ pub struct MoveTowards {
 pub enum SpawnShipType {
     Neutral,
     Basic,
-    Small,
-    Large,
+    // Small,
+    // Large,
 }
 
 impl SpawnShipType {
@@ -110,18 +110,18 @@ impl SpawnShipType {
                 rotation_direction,
                 hit_points: base_hit_points,
             },
-            SpawnShipType::Small => SpawnShip {
-                every: Timer::from_seconds(base_delay / 2., true),
-                scale: 1.,
-                rotation_direction,
-                hit_points: base_hit_points / 2,
-            },
-            SpawnShipType::Large => SpawnShip {
-                every: Timer::from_seconds(base_delay * 2., true),
-                scale: 1.,
-                rotation_direction,
-                hit_points: base_hit_points * 2,
-            },
+            // SpawnShipType::Small => SpawnShip {
+            //     every: Timer::from_seconds(base_delay / 2., true),
+            //     scale: 1.,
+            //     rotation_direction,
+            //     hit_points: base_hit_points / 2,
+            // },
+            // SpawnShipType::Large => SpawnShip {
+            //     every: Timer::from_seconds(base_delay * 2., true),
+            //     scale: 1.,
+            //     rotation_direction,
+            //     hit_points: base_hit_points * 2,
+            // },
         }
     }
 }
@@ -176,6 +176,7 @@ pub struct SpawnShipProgress;
 fn spawn_ship(
     commands: &mut Commands,
     time: Res<Time>,
+    config: Res<crate::Config>,
     mut asset_handles: ResMut<crate::AssetHandles>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -260,10 +261,18 @@ fn spawn_ship(
             let mut translation = global_transform.translation.clone();
             translation.z = crate::Z_SHIP;
 
+            let lucky_draw = match (
+                owned_by,
+                rand::thread_rng().gen_bool(config.bigger_player_ship_rate),
+            ) {
+                (crate::game::OwnedBy::Player(0), true) => config.bigger_player_ship_change,
+                _ => 1.,
+            };
+
             commands.spawn(SpriteBundle {
                 transform: Transform {
                     translation,
-                    scale: Vec3::splat(spawn.scale * 0.15),
+                    scale: Vec3::splat(spawn.scale * 0.15 * (lucky_draw)),
                     ..Default::default()
                 },
                 material: ship.clone(),
@@ -280,10 +289,10 @@ fn spawn_ship(
                         .user_data(entity.to_bits() as u128),
                 )
                 .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(
-                    spawn.scale * 5.,
+                    spawn.scale * 5. * (lucky_draw),
                 ));
             commands.with(orbiter).with(owned_by.clone()).with(Ship {
-                hit_points: spawn.hit_points,
+                hit_points: (spawn.hit_points as f32 * lucky_draw).ceil() as i32,
             });
         }
     }
