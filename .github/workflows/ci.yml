@@ -29,11 +29,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install cargo-make
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --debug cargo-make
+      - uses: davidB/rust-cargo-make@v1
       - name: Run CI
         uses: actions-rs/cargo@v1
         with:
