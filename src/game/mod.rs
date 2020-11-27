@@ -552,7 +552,7 @@ pub fn asteroid_belt(
                 commands.spawn(SpriteBundle {
                     transform: Transform {
                         translation,
-                        scale: Vec3::splat(0.3),
+                        scale: Vec3::splat(0.4),
                         ..Default::default()
                     },
                     material: meteor.clone(),
@@ -575,7 +575,7 @@ pub fn asteroid_belt(
                     )
                     .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true));
                 commands
-                    .with(Asteroid(Timer::from_seconds(30., false)))
+                    .with(Asteroid(Timer::from_seconds(40., false)))
                     .with(ScreenTag);
             }
         }
