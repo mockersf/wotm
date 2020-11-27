@@ -47,7 +47,7 @@ fn update_stats(
 
 fn setup(
     commands: &mut Commands,
-    mut game_screen: ResMut<crate::GameScreen>,
+    game_screen: Res<crate::GameScreen>,
     mut screen: ResMut<Screen>,
     mut game: ResMut<crate::game::Game>,
     asset_server: Res<AssetServer>,
@@ -58,8 +58,6 @@ fn setup(
         info!("Loading screen");
 
         let font: Handle<Font> = asset_handles.get_font_main_handle(&asset_server);
-
-        let font_sub: Handle<Font> = asset_handles.get_font_sub_handle(&asset_server);
 
         commands
             .spawn(NodeBundle {
@@ -100,34 +98,8 @@ fn setup(
                     },
                     ..Default::default()
                 });
-                parent.spawn(TextBundle {
-                    style: Style {
-                        size: Size {
-                            height: Val::Px(100.),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
-                    text: Text {
-                        value: format!("{} points", game.score),
-                        font: font_sub.clone(),
-                        style: TextStyle {
-                            color: if game_screen.is_new_highscore(game.score) {
-                                crate::ui::ColorScheme::TEXT_HIGHLIGHT
-                            } else {
-                                crate::ui::ColorScheme::TEXT
-                            },
-                            font_size: 100.0,
-                            ..Default::default()
-                        },
-                    },
-                    ..Default::default()
-                });
             });
 
-        if game.score > game_screen.highscore {
-            game_screen.highscore = game.score;
-        }
         *game = crate::game::Game::default();
 
         screen.loaded = true;

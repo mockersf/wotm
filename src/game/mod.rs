@@ -407,6 +407,7 @@ impl PlanetFleet {
 pub fn planet_defense(
     commands: &mut Commands,
     time: Res<Time>,
+    mut game_screen: ResMut<crate::GameScreen>,
     asset_handles: Res<crate::AssetHandles>,
     mut planet_fleet: Query<(Entity, &GlobalTransform, &mut PlanetFleet)>,
     moons: Query<(Entity, &OwnedBy), With<Moon>>,
@@ -428,6 +429,9 @@ pub fn planet_defense(
                     .iter()
                     .filter(|(_, moon_owner)| **moon_owner == OwnedBy::Player(0))
                     .count();
+                if player_moons == 0 {
+                    game_screen.current_screen = crate::Screen::Lost;
+                }
                 let mut hit_points_to_spawn = ((ratio
                     * (fleet.last_happened / fleet.timer.duration + fleet.iteration)
                     / 2.5) as i32
