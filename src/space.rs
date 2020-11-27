@@ -164,8 +164,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(orbite_around)
             .add_system(move_towards)
             .add_system(ship_collision)
-            .add_system(planet_collision)
-            .add_system(planet_collision)
+            .add_system(object_collision)
             .add_system(game_events)
             .add_system(explode)
             .add_system(manage_shield);
@@ -589,7 +588,7 @@ pub fn manage_shield(
     }
 }
 
-pub fn planet_collision(
+pub fn object_collision(
     events: Res<bevy_rapier2d::physics::EventQueue>,
     bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
     colliders: Res<bevy_rapier2d::rapier::geometry::ColliderSet>,
@@ -597,6 +596,7 @@ pub fn planet_collision(
     ship_owner: Query<&crate::game::OwnedBy, With<crate::space::Ship>>,
     planet_owner: Query<&crate::game::OwnedBy, With<crate::game::Planet>>,
     moon_owner: Query<&crate::game::OwnedBy, With<crate::game::Moon>>,
+    asteroid: Query<&crate::game::Asteroid>,
 ) {
     while let Ok(event) = events.proximity_events.pop() {
         let entity1 = Entity::from_bits(
@@ -612,6 +612,15 @@ pub fn planet_collision(
                 .user_data as u64,
         );
         if let bevy_rapier2d::rapier::ncollide::query::Proximity::Intersecting = event.new_status {
+            let (ship, asteroid) =
+                match (asteroid.get(entity1).is_ok(), asteroid.get(entity2).is_ok()) {
+                    (true, _) => (entity2, true),
+                    (_, true) => (entity1, true),
+                    _ => (entity1, false),
+                };
+            if asteroid {
+                game_events.send(crate::game::GameEvents::ShipDamaged(ship, 500));
+            }
             let (ship, planet) = match (
                 planet_owner.get(entity1).is_ok(),
                 planet_owner.get(entity2).is_ok(),

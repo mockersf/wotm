@@ -680,6 +680,28 @@ pub fn ui_update_on_interaction_event(
     }
 }
 
+pub fn ship_count(
+    mut game: ResMut<Game>,
+    query_moon: Query<Entity, With<Moon>>,
+    query_planet: Query<Entity, With<Planet>>,
+    query_ships: Query<(&crate::space::Orbiter, &crate::game::OwnedBy), With<crate::space::Ship>>,
+) {
+    for moon_entity in query_moon.iter().chain(query_planet.iter()) {
+        let ships_orbiting_count = query_ships
+            .iter()
+            .filter(|(orbiter, _)| orbiter.around == moon_entity)
+            .fold(
+                std::collections::HashMap::new(),
+                |mut counts, (_, owned_by)| {
+                    let count = counts.entry(owned_by.clone()).or_insert(0);
+                    *count += 1;
+                    counts
+                },
+            );
+        game.ship_counts.insert(moon_entity, ships_orbiting_count);
+    }
+}
+
 pub fn ui_update(
     commands: &mut Commands,
     game: Res<Game>,
@@ -689,7 +711,6 @@ pub fn ui_update(
     query_ui_selected: Query<Entity, With<UiSelected>>,
     query_ui_highlighted: Query<Entity, With<UiHighlighted>>,
     query_owner: Query<&crate::game::OwnedBy>,
-    query_ships: Query<(&crate::space::Orbiter, &crate::game::OwnedBy), With<crate::space::Ship>>,
     mut ui_texts: Query<(&mut Text, &UiElement, &Panel)>,
     mut ui_nodes: Query<(Entity, Option<&mut Children>, &UiElement, &Panel), Without<Text>>,
 ) {
@@ -702,17 +723,7 @@ pub fn ui_update(
         if let Some(entity) = moon_entity {
             if let Some(ui_main) = ui_entity {
                 let owner = query_owner.get(entity).unwrap();
-                let ships_orbiting_count = query_ships
-                    .iter()
-                    .filter(|(orbiter, _)| orbiter.around == entity)
-                    .fold(
-                        std::collections::HashMap::new(),
-                        |mut counts, (_, owned_by)| {
-                            let count = counts.entry(owned_by).or_insert(0);
-                            *count += 1;
-                            counts
-                        },
-                    );
+                let ships_orbiting_count = game.ship_counts.get(&entity).unwrap();
                 for (mut ui_text, element, panel) in ui_texts.iter_mut() {
                     if panel.0 != ui_main {
                         continue;
@@ -860,12 +871,12 @@ pub fn orders(
         if *owner != crate::game::OwnedBy::Player(0) {
             return;
         }
-        let ship_count = query_ships
-            .iter()
-            .filter(|(_, orbiter, owned_by)| {
-                orbiter.around == selected && **owned_by == crate::game::OwnedBy::Player(0)
-            })
-            .count();
+        let ship_count = *game
+            .ship_counts
+            .get(&selected)
+            .unwrap()
+            .get(&crate::game::OwnedBy::Player(0))
+            .unwrap_or(&0);
 
         query_ships
             .iter()

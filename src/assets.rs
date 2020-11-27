@@ -50,6 +50,7 @@ pub struct AssetHandles {
 pub struct GameHandles {
     pub planets: Vec<(Handle<ColorMaterial>, u32)>,
     pub orbiters: Vec<Handle<ColorMaterial>>,
+    pub meteors: Vec<Handle<ColorMaterial>>,
     pub ships: Vec<Vec<Handle<ColorMaterial>>>,
     pub explosion_handle: Handle<TextureAtlas>,
 }
@@ -297,6 +298,12 @@ impl AssetHandles {
                     colormaterial!(mats, assets, "Meteors/spaceMeteors_002.png"),
                     colormaterial!(mats, assets, "Meteors/spaceMeteors_003.png"),
                     colormaterial!(mats, assets, "Meteors/spaceMeteors_004.png"),
+                ],
+                meteors: vec![
+                    colormaterial!(mats, assets, "Meteors/meteorGrey_big1.png"),
+                    colormaterial!(mats, assets, "Meteors/meteorGrey_big2.png"),
+                    colormaterial!(mats, assets, "Meteors/meteorGrey_big3.png"),
+                    colormaterial!(mats, assets, "Meteors/meteorGrey_big4.png"),
                 ],
                 ships: vec![
                     vec![

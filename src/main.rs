@@ -44,6 +44,8 @@ pub struct Config {
     pub fleet_timer: f32,
     pub fleet_delay: f32,
     pub fleet_chance: f32,
+    pub asteroid_timer: f32,
+    pub asteroid_chance: f32,
 }
 
 impl Default for Config {
@@ -54,6 +56,8 @@ impl Default for Config {
             fleet_timer: 1.,
             fleet_delay: 15.,
             fleet_chance: 0.2,
+            asteroid_timer: 30.,
+            asteroid_chance: 0.5,
         }
     }
 }

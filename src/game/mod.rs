@@ -30,6 +30,7 @@ impl bevy::app::Plugin for Plugin {
             .add_event::<InterestingEvent>()
             .add_event::<ui::InteractionEvent>()
             .add_system(keyboard_input_system)
+            .add_system(ui::ship_count)
             .add_system(ui::setup)
             .add_system(ui::interaction)
             .add_system(ui::ui_update)
@@ -41,6 +42,8 @@ impl bevy::app::Plugin for Plugin {
             .add_system(setup_finish)
             .add_system(change_owner)
             .add_system(planet_defense)
+            .add_system(asteroid_belt)
+            .add_system(asteroid)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
@@ -112,6 +115,7 @@ fn setup_game(
             })
             .with(OwnedBy::Neutral)
             .with(PlanetFleet::new(&config))
+            .with(AsteroidBelt::new(&config))
             .with(ScreenTag);
         let planet = commands.current_entity().unwrap();
 
@@ -291,6 +295,7 @@ pub struct Game {
     pub ratio: Ratio,
     pub targeted: Option<Entity>,
     pub elapsed: f32,
+    pub ship_counts: std::collections::HashMap<Entity, std::collections::HashMap<OwnedBy, usize>>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -372,15 +377,12 @@ pub enum InterestingEvent {}
 
 fn change_owner(
     mut game_events: ResMut<Events<crate::game::GameEvents>>,
+    game: Res<Game>,
     query_moon: Query<(Entity, &OwnedBy), With<crate::game::Moon>>,
-    query_ships: Query<(&crate::space::Orbiter, &OwnedBy), With<crate::space::Ship>>,
 ) {
     for (entity, owner) in query_moon.iter() {
-        let owners = query_ships
-            .iter()
-            .filter(|(orbiter, _)| orbiter.around == entity)
-            .map(|(_, owner)| owner)
-            .collect::<std::collections::HashSet<_>>();
+        let owners = game.ship_counts.get(&entity).unwrap().keys();
+
         if owners.len() == 1 {
             let new_owner = owners.into_iter().next().unwrap();
             if *owner != *new_owner {
@@ -480,6 +482,101 @@ pub fn planet_defense(
                 fleet.last_happened = 0.;
                 fleet.iteration += 1.;
             }
+        }
+    }
+}
+
+pub struct AsteroidBelt {
+    timer: Timer,
+}
+impl AsteroidBelt {
+    pub fn new(config: &crate::Config) -> Self {
+        Self {
+            timer: Timer::from_seconds(config.asteroid_timer, true),
+        }
+    }
+}
+
+pub fn asteroid_belt(
+    commands: &mut Commands,
+    time: Res<Time>,
+    game: Res<Game>,
+    config: Res<crate::Config>,
+    asset_handles: Res<crate::AssetHandles>,
+    mut asteroids: Query<&mut AsteroidBelt>,
+    moons: Query<&GlobalTransform, With<Moon>>,
+) {
+    for mut asteroid in asteroids.iter_mut() {
+        asteroid.timer.tick(time.delta_seconds);
+        if asteroid.timer.just_finished {
+            if rand::thread_rng().gen_bool(config.asteroid_chance as f64) {
+                let game_handles = asset_handles.get_game_handles_unsafe();
+                let meteor = game_handles
+                    .meteors
+                    .choose(&mut rand::thread_rng())
+                    .unwrap();
+                let (start_x, start_y) = match rand::thread_rng().gen_range(0, 5) {
+                    0 => (-700., rand::thread_rng().gen_range(-400., 400.)),
+                    1 => (700., rand::thread_rng().gen_range(-400., 400.)),
+                    2 => (rand::thread_rng().gen_range(-700., 700.), -400.),
+                    _ => (rand::thread_rng().gen_range(-700., 700.), 400.),
+                };
+
+                let translation = Vec3::new(start_x, start_y, crate::Z_SHIP);
+
+                let target = game
+                    .ship_counts
+                    .iter()
+                    .map(|(entity, counts)| (entity, counts.iter().fold(0, |acc, (_, c)| acc + c)))
+                    .max_by_key(|(_, c)| *c)
+                    .unwrap()
+                    .0;
+                let target = moons.get(*target).unwrap();
+
+                commands.spawn(SpriteBundle {
+                    transform: Transform {
+                        translation,
+                        scale: Vec3::splat(0.3),
+                        ..Default::default()
+                    },
+                    material: meteor.clone(),
+                    ..Default::default()
+                });
+                let entity = commands.current_entity().unwrap();
+                let a = bevy_rapier2d::rapier::math::Vector::new(
+                    -start_x + target.translation.x,
+                    -start_y + target.translation.y,
+                )
+                .normalize()
+                    * rand::thread_rng().gen_range(175., 250.);
+                commands
+                    .with(
+                        bevy_rapier2d::rapier::dynamics::RigidBodyBuilder::new_dynamic()
+                            .translation(translation.x, translation.y)
+                            .user_data(entity.to_bits() as u128)
+                            .angvel(rand::thread_rng().gen_range(-1., 1.))
+                            .linvel(a.x, a.y),
+                    )
+                    .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true));
+                commands
+                    .with(Asteroid(Timer::from_seconds(30., false)))
+                    .with(ScreenTag);
+            }
+        }
+    }
+}
+
+pub struct Asteroid(Timer);
+
+pub fn asteroid(
+    commands: &mut Commands,
+    time: Res<Time>,
+    mut asteroids: Query<(Entity, &mut Asteroid)>,
+) {
+    for (entity, mut asteroid) in asteroids.iter_mut() {
+        asteroid.0.tick(time.delta_seconds);
+        if asteroid.0.just_finished {
+            commands.despawn_recursive(entity);
         }
     }
 }
