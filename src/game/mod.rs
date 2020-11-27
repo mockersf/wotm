@@ -422,7 +422,20 @@ pub fn planet_defense(
         fleet.timer.tick(time.delta_seconds);
         fleet.last_happened += time.delta_seconds;
         if fleet.timer.just_finished {
-            if rand::thread_rng().gen_bool(config.fleet_chance as f64) {
+            let mut override_chance = None;
+            let mut override_min_health = None;
+            let mut override_max_health = None;
+            let neutral_moons = moons
+                .iter()
+                .filter(|(_, moon_owner)| **moon_owner == OwnedBy::Neutral)
+                .count();
+            if neutral_moons == 0 {
+                override_chance = Some(config.fleet_chance * 2.);
+                override_min_health = Some(0);
+                override_max_health = Some(4);
+            }
+
+            if rand::thread_rng().gen_bool(override_chance.unwrap_or(config.fleet_chance) as f64) {
                 let game_handles = asset_handles.get_game_handles_unsafe();
 
                 let ship = game_handles.ships[2]
@@ -444,7 +457,10 @@ pub fn planet_defense(
                     - 1;
                 let mut i = -0.2;
                 while hit_points_to_spawn > 0 {
-                    let spawn_hit_points = 0.max(rand::thread_rng().gen_range(-4, 2));
+                    let spawn_hit_points = 0.max(rand::thread_rng().gen_range(
+                        override_min_health.unwrap_or(-4),
+                        override_max_health.unwrap_or(2),
+                    ));
                     let moon = moons.iter().choose(&mut rand::thread_rng()).unwrap();
                     let scale = (spawn_hit_points as f32 + 3.) / 4.;
                     commands.spawn(SpriteBundle {
