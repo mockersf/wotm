@@ -167,6 +167,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(object_collision)
             .add_system(game_events)
             .add_system(explode)
+            .add_system(shielded)
             .add_system(manage_shield);
     }
 }
@@ -474,16 +475,13 @@ pub fn game_events(
         Local<EventReader<crate::game::GameEvents>>,
         Res<Events<crate::game::GameEvents>>,
     ),
-    mut asset_handles: ResMut<crate::AssetHandles>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    asset_handles: ResMut<crate::AssetHandles>,
     mut ship_info: Query<(&mut Ship, &GlobalTransform), With<crate::space::Ship>>,
     mut query_moon: Query<(&crate::space::SpawnShip, &mut crate::game::OwnedBy)>,
     mut query_ships: Query<
         (&mut crate::space::Orbiter, &crate::game::OwnedBy),
         With<crate::space::Ship>,
     >,
-    query_interaction_box: Query<&crate::game::ui::InteractionBox>,
 ) {
     for event in event_reader.iter(&events) {
         match event {
@@ -534,37 +532,14 @@ pub fn game_events(
                         });
                 }
             }
-            crate::game::GameEvents::PlanetShield(entity) => {
-                if let Ok(interaction_box) = query_interaction_box.get(*entity) {
-                    let shield_color = asset_handles.get_color_spawning_enemy(&mut materials);
-                    let radius = interaction_box.radius * 10. - 20.;
-
-                    let mut builder = bevy_prototype_lyon::path::PathBuilder::new();
-                    builder.move_to(bevy_prototype_lyon::prelude::point(0., radius));
-                    builder.arc(
-                        bevy_prototype_lyon::prelude::point(0., 0.),
-                        radius,
-                        radius,
-                        2. * std::f32::consts::PI,
-                        0.,
-                    );
-                    let path = builder.build();
-                    let sprite = path.stroke(
-                        shield_color,
-                        &mut meshes,
-                        Vec3::new(0.0, 0.0, 0.0),
-                        &bevy_prototype_lyon::prelude::StrokeOptions::default()
-                            .with_line_width(20.0)
-                            .with_line_cap(bevy_prototype_lyon::prelude::LineCap::Round)
-                            .with_line_join(bevy_prototype_lyon::prelude::LineJoin::Round),
-                    );
-                    let shield = commands
-                        .spawn(sprite)
-                        .with(Shield(Timer::from_seconds(0.5, false)))
-                        .current_entity()
-                        .unwrap();
-                    commands.push_children(*entity, &[shield]);
-                }
+            crate::game::GameEvents::PlanetShield(entity, duration) => {
+                let shield = commands
+                    .spawn((Shielded {
+                        timer: Timer::from_seconds(*duration, false),
+                    },))
+                    .current_entity()
+                    .unwrap();
+                commands.push_children(*entity, &[shield]);
             }
             crate::game::GameEvents::PlanetConquered(_) => {
                 game_screen.current_screen = crate::Screen::Win;
@@ -589,14 +564,15 @@ pub fn manage_shield(
 }
 
 pub fn object_collision(
+    game: Res<crate::game::Game>,
     events: Res<bevy_rapier2d::physics::EventQueue>,
     bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
     colliders: Res<bevy_rapier2d::rapier::geometry::ColliderSet>,
     mut game_events: ResMut<Events<crate::game::GameEvents>>,
     ship_owner: Query<&crate::game::OwnedBy, With<crate::space::Ship>>,
     planet_owner: Query<&crate::game::OwnedBy, With<crate::game::Planet>>,
-    moon_owner: Query<&crate::game::OwnedBy, With<crate::game::Moon>>,
     asteroid: Query<&crate::game::Asteroid>,
+    shielded: Query<&Parent, With<Shielded>>,
 ) {
     while let Ok(event) = events.proximity_events.pop() {
         let entity1 = Entity::from_bits(
@@ -630,14 +606,11 @@ pub fn object_collision(
                 _ => continue,
             };
             if let Ok(crate::game::OwnedBy::Player(0)) = ship_owner.get(ship) {
-                if moon_owner
-                    .iter()
-                    .filter(|owner| **owner != crate::game::OwnedBy::Player(0))
-                    .count()
-                    != 0
-                {
+                if game.neutral_moons != 0 {
                     game_events.send(crate::game::GameEvents::ShipDamaged(ship, 500));
-                    game_events.send(crate::game::GameEvents::PlanetShield(planet));
+                    game_events.send(crate::game::GameEvents::PlanetShield(planet, 0.5));
+                } else if shielded.iter().find(|parent| parent.0 == planet).is_some() {
+                    game_events.send(crate::game::GameEvents::ShipDamaged(ship, 500));
                 } else {
                     game_events.send(crate::game::GameEvents::PlanetConquered(planet));
                 }
@@ -663,6 +636,71 @@ fn explode(
                 }
                 n => atlas_sprite.index = n + 1,
             }
+        }
+    }
+}
+
+pub struct Shielded {
+    pub timer: Timer,
+}
+
+fn shielded(
+    commands: &mut Commands,
+    time: Res<Time>,
+    mut asset_handles: ResMut<crate::AssetHandles>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    bodies: Res<bevy_rapier2d::rapier::dynamics::RigidBodySet>,
+    mut shieldeds: Query<(Entity, &Parent, &mut Shielded)>,
+    query: Query<(
+        &crate::game::ui::InteractionBox,
+        Option<&bevy_rapier2d::physics::RigidBodyHandleComponent>,
+    )>,
+) {
+    for (shield_entity, planet_entity, mut shielded) in shieldeds.iter_mut() {
+        shielded.timer.tick(time.delta_seconds);
+
+        let (interaction_box, rigid_body) = query.get(planet_entity.0).unwrap();
+
+        if let Some(rigid_body) = rigid_body {
+            let color_spawn_progress = asset_handles.get_color_spawning_enemy(&mut materials);
+            let body = bodies.get(rigid_body.handle()).unwrap();
+
+            let angle = (shielded.timer.duration - shielded.timer.elapsed)
+                / shielded.timer.duration
+                * 2.
+                * std::f32::consts::PI;
+
+            let radius = interaction_box.radius * 10. - 20.;
+            let start_x =
+                (-body.position.rotation.angle() + std::f32::consts::FRAC_PI_2).cos() * radius;
+            let start_y =
+                (-body.position.rotation.angle() + std::f32::consts::FRAC_PI_2).sin() * radius;
+            let mut builder = bevy_prototype_lyon::path::PathBuilder::new();
+            builder.move_to(bevy_prototype_lyon::prelude::point(start_x, start_y));
+            builder.arc(
+                bevy_prototype_lyon::prelude::point(0., 0.),
+                radius,
+                radius,
+                angle,
+                0.,
+            );
+            let path = builder.build();
+            let sprite = path.stroke(
+                color_spawn_progress.clone(),
+                &mut meshes,
+                Vec3::new(0.0, 0.0, 0.0),
+                &bevy_prototype_lyon::prelude::StrokeOptions::default()
+                    .with_line_width(20.)
+                    .with_line_cap(bevy_prototype_lyon::prelude::LineCap::Round)
+                    .with_line_join(bevy_prototype_lyon::prelude::LineJoin::Round),
+            );
+
+            commands.insert(shield_entity, sprite);
+        }
+
+        if shielded.timer.just_finished {
+            commands.despawn_recursive(shield_entity);
         }
     }
 }

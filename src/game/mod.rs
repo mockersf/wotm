@@ -301,6 +301,7 @@ pub struct Game {
     pub targeted: Option<Entity>,
     pub elapsed: f32,
     pub ship_counts: std::collections::HashMap<Entity, std::collections::HashMap<OwnedBy, usize>>,
+    pub neutral_moons: usize,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -373,7 +374,7 @@ impl Ratio {
 #[derive(PartialEq)]
 pub enum GameEvents {
     ShipDamaged(Entity, i32),
-    PlanetShield(Entity),
+    PlanetShield(Entity, f32),
     MoonConquered(Entity, OwnedBy),
     PlanetConquered(Entity),
 }
@@ -503,8 +504,15 @@ pub fn planet_defense(
                         .with(crate::space::Ship {
                             hit_points: spawn_hit_points,
                         });
+                    commands.with(SelfDestruct(Timer::from_seconds(
+                        match spawn_hit_points {
+                            0 | 1 => 20.,
+                            2 | 3 | 4 => 10.,
+                            _ => 5.,
+                        },
+                        false,
+                    )));
                     if spawn_hit_points == 0 {
-                        commands.with(SelfDestruct(Timer::from_seconds(20., false)));
                         zero_spawned += 1;
                     }
                     hit_points_to_spawn -= spawn_hit_points;
@@ -577,7 +585,9 @@ pub fn asteroid_belt(
                     .max_by_key(|(_, c)| *c)
                     .unwrap()
                     .0;
-                let target = moons.get(*target).unwrap();
+                let target = moons
+                    .get(*target)
+                    .unwrap_or_else(|_| moons.iter().choose(&mut rand::thread_rng()).unwrap());
 
                 commands.spawn(SpriteBundle {
                     transform: Transform {

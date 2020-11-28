@@ -725,11 +725,13 @@ pub fn ui_update_on_interaction_event(
 
 pub fn ship_count(
     mut game: ResMut<Game>,
-    query_moon: Query<Entity, With<Moon>>,
+    mut events: ResMut<Events<GameEvents>>,
+    query_moon: Query<(Entity, &OwnedBy), With<Moon>>,
     query_planet: Query<Entity, With<Planet>>,
     query_ships: Query<(&crate::space::Orbiter, &crate::game::OwnedBy), With<crate::space::Ship>>,
 ) {
-    for moon_entity in query_moon.iter().chain(query_planet.iter()) {
+    let mut neutral_moons = 0;
+    for (moon_entity, owner) in query_moon.iter() {
         let ships_orbiting_count = query_ships
             .iter()
             .filter(|(orbiter, _)| orbiter.around == moon_entity)
@@ -742,7 +744,18 @@ pub fn ship_count(
                 },
             );
         game.ship_counts.insert(moon_entity, ships_orbiting_count);
+        if let OwnedBy::Neutral = owner {
+            neutral_moons += 1;
+        }
     }
+    if let Some(planet) = query_planet.iter().next() {
+        game.ship_counts
+            .insert(planet, std::collections::HashMap::new());
+        if neutral_moons == 0 && game.neutral_moons != 0 {
+            events.send(GameEvents::PlanetShield(planet, 10.0))
+        }
+    }
+    game.neutral_moons = neutral_moons;
 }
 
 pub fn ui_update(
