@@ -45,6 +45,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(planet_defense)
             .add_system(asteroid_belt)
             .add_system(asteroid)
+            .add_system(moon_attack)
             .add_system(self_destruct)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
@@ -615,6 +616,50 @@ pub fn asteroid(
         asteroid.0.tick(time.delta_seconds);
         if asteroid.0.just_finished {
             commands.despawn_recursive(entity);
+        }
+    }
+}
+
+pub fn moon_attack(
+    commands: &mut Commands,
+    game: Res<Game>,
+    moons: Query<(Entity, &OwnedBy), With<Moon>>,
+    query_ships: Query<
+        (Entity, &crate::space::Orbiter, &crate::game::OwnedBy),
+        With<crate::space::Ship>,
+    >,
+) {
+    if let Some(targeted) = moons
+        .iter()
+        .find(|(_, o)| **o == OwnedBy::Player(0))
+        .map(|(e, _)| e)
+    {
+        for (moon, _) in moons.iter() {
+            let count = game
+                .ship_counts
+                .get(&moon)
+                .unwrap()
+                .get(&OwnedBy::Neutral)
+                .unwrap_or(&0);
+            if *count > 25 {
+                query_ships
+                    .iter()
+                    .filter(|(_, orbiter, owned_by)| {
+                        orbiter.around == moon && **owned_by == crate::game::OwnedBy::Neutral
+                    })
+                    .take(count * 80 / 100)
+                    .for_each(|(entity, _, _)| {
+                        commands.remove_one::<crate::space::Orbiter>(entity);
+                        commands.insert_one(
+                            entity,
+                            crate::space::MoveTowards {
+                                speed: 2000.,
+                                from: moon,
+                                towards: targeted,
+                            },
+                        );
+                    });
+            }
         }
     }
 }
