@@ -108,7 +108,7 @@ impl SpawnShipType {
                 every: Timer::from_seconds(base_delay, true),
                 scale: 1.,
                 rotation_direction,
-                hit_points: base_hit_points,
+                hit_points: base_hit_points + 1,
             },
             // SpawnShipType::Small => SpawnShip {
             //     every: Timer::from_seconds(base_delay / 2., true),

@@ -51,11 +51,11 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            bigger_player_ship_rate: 0.25,
+            bigger_player_ship_rate: 0.75,
             bigger_player_ship_change: 1.25,
-            fleet_timer: 1.,
-            fleet_delay: 15.,
-            fleet_chance: 0.2,
+            fleet_timer: 2.,
+            fleet_delay: 6.,
+            fleet_chance: 0.4,
             asteroid_timer: 30.,
             asteroid_chance: 0.5,
         }

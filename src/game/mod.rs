@@ -168,7 +168,9 @@ fn setup_game(
                 crate::space::RotationDirection::CounterClockwise
             };
             if player_start_moon == i {
-                commands.with(crate::space::SpawnShipType::Basic.to_components(rot));
+                let mut spawner = crate::space::SpawnShipType::Basic.to_components(rot);
+                spawner.every.elapsed = spawner.every.duration / 2.;
+                commands.with(spawner);
             } else {
                 commands.with(crate::space::SpawnShipType::Neutral.to_components(rot));
             }
@@ -416,6 +418,7 @@ pub fn planet_defense(
     commands: &mut Commands,
     time: Res<Time>,
     config: Res<crate::Config>,
+    game: Res<Game>,
     mut game_screen: ResMut<crate::GameScreen>,
     asset_handles: Res<crate::AssetHandles>,
     mut planet_fleet: Query<(Entity, &GlobalTransform, &mut PlanetFleet)>,
@@ -435,7 +438,7 @@ pub fn planet_defense(
             if neutral_moons == 0 {
                 override_chance = Some(0.75);
                 override_min_health = Some(0);
-                override_max_health = Some(4);
+                override_max_health = Some(4 + (game.elapsed / 60.).ceil() as i32);
             }
 
             if rand::thread_rng().gen_bool(override_chance.unwrap_or(config.fleet_chance) as f64) {
@@ -455,15 +458,20 @@ pub fn planet_defense(
                 }
                 let mut hit_points_to_spawn = ((config.fleet_chance
                     * (fleet.last_happened / fleet.timer.duration + fleet.iteration)
-                    / 2.5) as i32
+                    / 1.5) as i32
                     * player_moons as i32)
                     - 1;
                 let mut i = -0.2;
+                let mut zero_spawned = 0;
                 while hit_points_to_spawn > 0 {
-                    let spawn_hit_points = 0.max(rand::thread_rng().gen_range(
-                        override_min_health.unwrap_or(-4),
-                        override_max_health.unwrap_or(2),
-                    ));
+                    let max_hit_points =
+                        override_max_health.unwrap_or(2.max((game.elapsed / 60.).ceil() as i32));
+                    let min_hit_points = override_min_health.unwrap_or(-4)
+                        + zero_spawned / game.elapsed.ceil() as i32;
+                    let spawn_hit_points = 0.max(
+                        rand::thread_rng()
+                            .gen_range((max_hit_points - 1).min(min_hit_points), max_hit_points),
+                    );
                     let moon = moons.iter().choose(&mut rand::thread_rng()).unwrap();
                     let scale = (spawn_hit_points as f32 + 3.) / 4.;
                     commands.spawn(SpriteBundle {
@@ -497,6 +505,7 @@ pub fn planet_defense(
                         });
                     if spawn_hit_points == 0 {
                         commands.with(SelfDestruct(Timer::from_seconds(20., false)));
+                        zero_spawned += 1;
                     }
                     hit_points_to_spawn -= spawn_hit_points;
                     i += 0.1;
