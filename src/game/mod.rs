@@ -37,6 +37,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(ui::ui_update_on_interaction_event)
             .add_system(ui::orders)
             .add_system(ui::change_ratio_ui)
+            .add_system(ui::timer)
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
             .add_system(setup_game)
             .add_system(setup_finish)

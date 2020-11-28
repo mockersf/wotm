@@ -5,6 +5,7 @@ use super::*;
 
 pub struct UiSelected;
 pub struct UiHighlighted;
+pub struct UiTime;
 
 pub struct UiGameInteractionBlock;
 
@@ -20,6 +21,38 @@ pub fn setup(
         info!("Loading");
 
         let material_none = materials.add(Color::NONE.into());
+
+        let font = asset_handles.get_font_sub_handle(&asset_server);
+
+        commands
+            .spawn(TextBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: Rect {
+                        left: Val::Px(10.),
+                        top: Val::Px(10.),
+                        ..Default::default()
+                    },
+                    size: Size {
+                        height: Val::Px(30.),
+                        ..Default::default()
+                    },
+                    align_self: AlignSelf::Center,
+                    ..Default::default()
+                },
+                text: Text {
+                    font: font.clone(),
+                    style: TextStyle {
+                        color: crate::ui::ColorScheme::TEXT_DARK,
+                        font_size: 30.,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .with(UiTime)
+            .with(ScreenTag);
 
         let inner_content = commands
             .spawn(NodeBundle {
@@ -102,6 +135,16 @@ pub fn setup(
             .with(UiGameInteractionBlock)
             .current_entity()
             .unwrap();
+    }
+}
+
+pub fn timer(game: Res<Game>, mut timer: Query<&mut Text, With<UiTime>>) {
+    for mut timer in timer.iter_mut() {
+        let secs = game.elapsed.floor() as i32;
+        let ms = ((game.elapsed - secs as f32) * 1000.) as i32;
+        let m = secs / 60;
+        let secs = secs % 60;
+        timer.value = format!("{:02}:{:02}.{}", m, secs, ms);
     }
 }
 
