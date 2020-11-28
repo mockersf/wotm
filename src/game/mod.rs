@@ -44,6 +44,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(planet_defense)
             .add_system(asteroid_belt)
             .add_system(asteroid)
+            .add_system(self_destruct)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
@@ -492,6 +493,9 @@ pub fn planet_defense(
                         .with(crate::space::Ship {
                             hit_points: spawn_hit_points,
                         });
+                    if spawn_hit_points == 0 {
+                        commands.with(SelfDestruct(Timer::from_seconds(20., false)));
+                    }
                     hit_points_to_spawn -= spawn_hit_points;
                     i += 0.1;
                 }
@@ -501,6 +505,21 @@ pub fn planet_defense(
         }
     }
 }
+
+fn self_destruct(
+    mut game_events: ResMut<Events<crate::game::GameEvents>>,
+    time: Res<Time>,
+    mut to_destroys: Query<(Entity, &mut SelfDestruct)>,
+) {
+    for (entity, mut to_destroy) in to_destroys.iter_mut() {
+        to_destroy.0.tick(time.delta_seconds);
+        if to_destroy.0.just_finished {
+            game_events.send(GameEvents::ShipDamaged(entity, 1));
+        }
+    }
+}
+
+pub struct SelfDestruct(Timer);
 
 pub struct AsteroidBelt {
     timer: Timer,
