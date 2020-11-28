@@ -25,7 +25,7 @@ impl Plugin for InMemoryAssetPlugin {
             bevy::asset::stage::ASSET_EVENTS,
         )
         .add_resource(asset_server)
-        .register_property::<bevy::asset::HandleId>()
+        .register_type::<bevy::asset::HandleId>()
         .add_system_to_stage(
             bevy::app::stage::PRE_UPDATE,
             bevy::asset::free_unused_assets_system,

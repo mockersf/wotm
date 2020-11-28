@@ -52,11 +52,13 @@ fn setup(
                 ..Default::default()
             })
             .with(ScreenTag)
-            .with(Timer::from_seconds(0.05, true));
+            .with(SplashGiggle(Timer::from_seconds(0.05, true)));
 
         screen.done = Some(Timer::from_seconds(0.7, false));
     }
 }
+
+struct SplashGiggle(Timer);
 
 fn tear_down(
     commands: &mut Commands,
@@ -77,16 +79,20 @@ fn tear_down(
 
 fn done(time: Res<Time>, mut screen: ResMut<Screen>, mut state: ResMut<crate::GameScreen>) {
     if let Some(ref mut timer) = screen.done {
-        timer.tick(time.delta_seconds);
-        if timer.just_finished {
+        timer.tick(time.delta_seconds());
+        if timer.just_finished() {
             state.current_screen = crate::Screen::Menu;
         }
     }
 }
 
-fn animate_logo(mut query: Query<(&Timer, &mut Transform), With<ScreenTag>>) {
-    for (timer, mut transform) in query.iter_mut() {
-        if timer.finished {
+fn animate_logo(
+    time: Res<Time>,
+    mut query: Query<(&mut SplashGiggle, &mut Transform), With<ScreenTag>>,
+) {
+    for (mut timer, mut transform) in query.iter_mut() {
+        timer.0.tick(time.delta_seconds());
+        if timer.0.just_finished() {
             let translation = transform.translation;
             if translation.x != 0. || translation.y != 0. {
                 *transform = Transform::identity();

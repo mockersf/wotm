@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(bevy::type_registry::TypeUuid)]
+#[derive(bevy::reflect::TypeUuid)]
 #[uuid = "5114f317-f6a6-4436-bd2a-cb380f5eb551"]
 pub struct Button {
     background: Handle<ColorMaterial>,

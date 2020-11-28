@@ -145,7 +145,7 @@ fn hurt_animate_sprite_system(
 ) {
     if game_screen.current_screen == CURRENT_SCREEN {
         for (timer, mut sprite) in query.iter_mut() {
-            if timer.finished {
+            if timer.finished() {
                 if sprite.index == 0 {
                     sprite.index = 4;
                 } else {

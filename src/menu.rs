@@ -451,7 +451,7 @@ fn rotate_on_self(time: Res<Time>, mut query: Query<(&RotateOnSelf, &mut Transfo
         transform.rotation = Quat::from_axis_angle(
             Vec3::unit_z(),
             rotate.direction.to_factor()
-                * ((time.seconds_since_startup % rotate.duration) / rotate.duration
+                * ((time.seconds_since_startup() % rotate.duration) / rotate.duration
                     * (2. * std::f64::consts::PI)
                     + rotate.offset) as f32,
         )
@@ -478,8 +478,8 @@ struct Bye {
 
 fn go_away(commands: &mut Commands, time: Res<Time>, mut query: Query<(&mut GoAwayAfter, Entity)>) {
     for (mut gaa, entity) in query.iter_mut() {
-        gaa.0.tick(time.delta_seconds);
-        if gaa.0.finished && rand::thread_rng().gen_bool(0.001) {
+        gaa.0.tick(time.delta_seconds());
+        if gaa.0.finished() && rand::thread_rng().gen_bool(0.001) {
             commands.remove_one::<crate::space::Orbiter>(entity);
             commands.remove_one::<GoAwayAfter>(entity);
 
@@ -510,8 +510,8 @@ fn despawn_gone_ships(
     )>,
 ) {
     for (rigid_body, mut bye, entity) in query.iter_mut() {
-        bye.timer.tick(time.delta_seconds);
-        if bye.timer.just_finished {
+        bye.timer.tick(time.delta_seconds());
+        if bye.timer.just_finished() {
             commands.despawn_recursive(entity);
         } else {
             let mut body = bodies.get_mut(rigid_body.handle()).unwrap();

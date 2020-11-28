@@ -151,7 +151,7 @@ impl SpawnShip {
     }
 
     pub fn with_headstart(mut self) -> Self {
-        self.every.elapsed = 3. * self.every.duration / 4.;
+        self.every.set_elapsed(3. * self.every.duration() / 4.);
 
         self
     }
@@ -193,7 +193,7 @@ fn spawn_ship(
 ) {
     for (mut spawn, global_transform, entity, children, owned_by, rigid_body) in query.iter_mut() {
         let game_handles = asset_handles.get_game_handles_unsafe();
-        spawn.every.tick(time.delta_seconds);
+        spawn.every.tick(time.delta_seconds());
 
         if let Some(progress_entity) = children
             .iter()
@@ -213,7 +213,8 @@ fn spawn_ship(
                 };
                 let body = bodies.get(rigid_body.handle()).unwrap();
 
-                let angle = spawn.every.elapsed / spawn.every.duration * 2. * std::f32::consts::PI;
+                let angle =
+                    spawn.every.elapsed() / spawn.every.duration() * 2. * std::f32::consts::PI;
 
                 let radius = 300.;
                 let start_x =
@@ -244,7 +245,7 @@ fn spawn_ship(
             }
         }
 
-        if spawn.every.just_finished {
+        if spawn.every.just_finished() {
             let ship = game_handles.ships[match owned_by {
                 crate::game::OwnedBy::Player(i) => *i,
                 crate::game::OwnedBy::Neutral => 2,
@@ -329,7 +330,7 @@ fn orbite_around(
                     center_transform.translation.x,
                     center_transform.translation.y,
                 ),
-            target_orbiting_position(time.seconds_since_startup as f32, orbiter),
+            target_orbiting_position(time.seconds_since_startup() as f32, orbiter),
         );
         body.linvel = linvel * orbiter.speed * orbiter.distance;
         match orbiter.rotation {
@@ -408,7 +409,7 @@ fn move_towards(
             }
         }
 
-        body.linvel = linvel * towards.speed * time.delta_seconds;
+        body.linvel = linvel * towards.speed * time.delta_seconds();
         body.position.rotation =
             bevy_rapier2d::na::UnitComplex::from_angle(rot - std::f32::consts::FRAC_PI_2);
     }
@@ -556,8 +557,8 @@ pub fn manage_shield(
     mut query_shields: Query<(Entity, &mut Shield)>,
 ) {
     for (entity, mut shield) in query_shields.iter_mut() {
-        shield.0.tick(time.delta_seconds);
-        if shield.0.just_finished {
+        shield.0.tick(time.delta_seconds());
+        if shield.0.just_finished() {
             commands.despawn_recursive(entity);
         }
     }
@@ -628,8 +629,8 @@ fn explode(
     mut query: Query<(&mut Explosion, &mut TextureAtlasSprite, Entity)>,
 ) {
     for (mut explosion, mut atlas_sprite, entity) in query.iter_mut() {
-        explosion.timer.tick(time.delta_seconds);
-        if explosion.timer.just_finished {
+        explosion.timer.tick(time.delta_seconds());
+        if explosion.timer.just_finished() {
             match atlas_sprite.index {
                 6 => {
                     commands.despawn_recursive(entity);
@@ -658,7 +659,7 @@ fn shielded(
     )>,
 ) {
     for (shield_entity, planet_entity, mut shielded) in shieldeds.iter_mut() {
-        shielded.timer.tick(time.delta_seconds);
+        shielded.timer.tick(time.delta_seconds());
 
         let (interaction_box, rigid_body) = query.get(planet_entity.0).unwrap();
 
@@ -666,8 +667,8 @@ fn shielded(
             let color_spawn_progress = asset_handles.get_color_spawning_enemy(&mut materials);
             let body = bodies.get(rigid_body.handle()).unwrap();
 
-            let angle = (shielded.timer.duration - shielded.timer.elapsed)
-                / shielded.timer.duration
+            let angle = (shielded.timer.duration() - shielded.timer.elapsed())
+                / shielded.timer.duration()
                 * 2.
                 * std::f32::consts::PI;
 
@@ -699,7 +700,7 @@ fn shielded(
             commands.insert(shield_entity, sprite);
         }
 
-        if shielded.timer.just_finished {
+        if shielded.timer.just_finished() {
             commands.despawn_recursive(shield_entity);
         }
     }

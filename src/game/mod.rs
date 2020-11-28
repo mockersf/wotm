@@ -68,7 +68,7 @@ fn setup_game(
     asset_handles: Res<crate::AssetHandles>,
     mut events: ResMut<Events<ui::InteractionEvent>>,
 ) {
-    game.elapsed += time.delta_seconds;
+    game.elapsed += time.delta_seconds();
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
         game.elapsed = 0.;
@@ -139,8 +139,10 @@ fn setup_game(
                 (i as f32 + 1.) * (300. / nb_moon as f32) + rand::thread_rng().gen_range(0., 30.),
             )
             .self_rotate();
-            let start_position =
-                crate::space::target_orbiting_position(time.seconds_since_startup as f32, &orbiter);
+            let start_position = crate::space::target_orbiting_position(
+                time.seconds_since_startup() as f32,
+                &orbiter,
+            );
 
             commands
                 .spawn(SpriteBundle {
@@ -169,7 +171,7 @@ fn setup_game(
             };
             if player_start_moon == i {
                 let mut spawner = crate::space::SpawnShipType::Basic.to_components(rot);
-                spawner.every.elapsed = spawner.every.duration / 2.;
+                spawner.every.set_elapsed(spawner.every.duration() / 2.);
                 commands.with(spawner);
             } else {
                 commands.with(crate::space::SpawnShipType::Neutral.to_components(rot));
@@ -406,7 +408,7 @@ pub struct PlanetFleet {
 impl PlanetFleet {
     pub fn new(config: &crate::Config) -> Self {
         let mut timer = Timer::from_seconds(config.fleet_timer, true);
-        timer.elapsed = -config.fleet_delay;
+        timer.set_elapsed(-config.fleet_delay);
         Self {
             timer,
             last_happened: -config.fleet_delay,
@@ -426,9 +428,9 @@ pub fn planet_defense(
     moons: Query<(Entity, &OwnedBy), With<Moon>>,
 ) {
     for (planet, gt, mut fleet) in planet_fleet.iter_mut() {
-        fleet.timer.tick(time.delta_seconds);
-        fleet.last_happened += time.delta_seconds;
-        if fleet.timer.just_finished {
+        fleet.timer.tick(time.delta_seconds());
+        fleet.last_happened += time.delta_seconds();
+        if fleet.timer.just_finished() {
             let mut override_chance = None;
             let mut override_min_health = None;
             let mut override_max_health = None;
@@ -458,7 +460,7 @@ pub fn planet_defense(
                     game_screen.current_screen = crate::Screen::Lost;
                 }
                 let mut hit_points_to_spawn = ((config.fleet_chance
-                    * (fleet.last_happened / fleet.timer.duration + fleet.iteration)
+                    * (fleet.last_happened / fleet.timer.duration() + fleet.iteration)
                     / 1.5) as i32
                     * player_moons as i32)
                     - 1;
@@ -531,8 +533,8 @@ fn self_destruct(
     mut to_destroys: Query<(Entity, &mut SelfDestruct)>,
 ) {
     for (entity, mut to_destroy) in to_destroys.iter_mut() {
-        to_destroy.0.tick(time.delta_seconds);
-        if to_destroy.0.just_finished {
+        to_destroy.0.tick(time.delta_seconds());
+        if to_destroy.0.just_finished() {
             game_events.send(GameEvents::ShipDamaged(entity, 1));
         }
     }
@@ -561,8 +563,8 @@ pub fn asteroid_belt(
     moons: Query<&GlobalTransform, With<Moon>>,
 ) {
     for mut asteroid in asteroids.iter_mut() {
-        asteroid.timer.tick(time.delta_seconds);
-        if asteroid.timer.just_finished {
+        asteroid.timer.tick(time.delta_seconds());
+        if asteroid.timer.just_finished() {
             if rand::thread_rng().gen_bool(config.asteroid_chance as f64) {
                 let game_handles = asset_handles.get_game_handles_unsafe();
                 let meteor = game_handles
@@ -632,8 +634,8 @@ pub fn asteroid(
     mut asteroids: Query<(Entity, &mut Asteroid)>,
 ) {
     for (entity, mut asteroid) in asteroids.iter_mut() {
-        asteroid.0.tick(time.delta_seconds);
-        if asteroid.0.just_finished {
+        asteroid.0.tick(time.delta_seconds());
+        if asteroid.0.just_finished() {
             commands.despawn_recursive(entity);
         }
     }
