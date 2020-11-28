@@ -433,7 +433,7 @@ pub fn planet_defense(
                 .filter(|(_, moon_owner)| **moon_owner == OwnedBy::Neutral)
                 .count();
             if neutral_moons == 0 {
-                override_chance = Some(config.fleet_chance * 2.);
+                override_chance = Some(0.75);
                 override_min_health = Some(0);
                 override_max_health = Some(4);
             }
