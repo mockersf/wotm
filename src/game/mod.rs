@@ -573,9 +573,11 @@ pub fn asteroid_belt(
                             .angvel(rand::thread_rng().gen_range(-1., 1.))
                             .linvel(a.x, a.y),
                     )
-                    .with(bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(10.).sensor(true));
+                    .with(
+                        bevy_rapier2d::rapier::geometry::ColliderBuilder::ball(13.5).sensor(true),
+                    );
                 commands
-                    .with(Asteroid(Timer::from_seconds(40., false)))
+                    .with(Asteroid(Timer::from_seconds(30., false)))
                     .with(ScreenTag);
             }
         }
