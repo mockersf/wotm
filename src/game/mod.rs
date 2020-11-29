@@ -38,6 +38,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(ui::orders)
             .add_system(ui::change_ratio_ui)
             .add_system(ui::timer)
+            .add_system(ui::scorer)
             .add_system_to_stage(bevy::app::stage::PRE_UPDATE, ui::focus_system)
             .add_system(setup_game)
             .add_system(setup_finish)
@@ -47,6 +48,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(asteroid)
             .add_system(moon_attack)
             .add_system(self_destruct)
+            .add_system(scoring)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, ui::change_owner_interacted)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
@@ -73,6 +75,7 @@ fn setup_game(
     if game_screen.current_screen == CURRENT_SCREEN && !screen.loaded {
         info!("Loading screen");
         game.elapsed = 0.;
+        game.score = 0.;
 
         let game_handles = asset_handles.get_game_handles_unsafe();
 
@@ -286,8 +289,8 @@ impl Default for Player {
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum GameState {
     Play,
-    // Pause(Entity),
-    // Death,
+    Win,
+    Lose,
 }
 
 impl Default for GameState {
@@ -298,7 +301,8 @@ impl Default for GameState {
 
 #[derive(Default)]
 pub struct Game {
-    pub score: u32,
+    pub state: GameState,
+    pub score: f32,
     pub selected: Option<Entity>,
     pub ratio: Ratio,
     pub targeted: Option<Entity>,
@@ -422,7 +426,7 @@ pub fn planet_defense(
     commands: &mut Commands,
     time: Res<Time>,
     config: Res<crate::Config>,
-    game: Res<Game>,
+    mut game: ResMut<Game>,
     mut game_screen: ResMut<crate::GameScreen>,
     asset_handles: Res<crate::AssetHandles>,
     mut planet_fleet: Query<(Entity, &GlobalTransform, &mut PlanetFleet)>,
@@ -458,7 +462,8 @@ pub fn planet_defense(
                     .filter(|(_, moon_owner)| **moon_owner == OwnedBy::Player(0))
                     .count();
                 if player_moons == 0 {
-                    game_screen.current_screen = crate::Screen::Lost;
+                    game.state = GameState::Lose;
+                    game_screen.current_screen = crate::Screen::End;
                 }
                 let mut hit_points_to_spawn = ((config.fleet_chance
                     * (fleet.last_happened / fleet.timer.duration() + fleet.iteration)
@@ -680,6 +685,54 @@ pub fn moon_attack(
                         );
                     });
             }
+        }
+    }
+}
+
+fn scoring(
+    game_screen: Res<crate::GameScreen>,
+    mut game: ResMut<Game>,
+    time: Res<Time>,
+    (mut event_reader, events): (
+        Local<EventReader<crate::game::GameEvents>>,
+        Res<Events<crate::game::GameEvents>>,
+    ),
+    ship_owner: Query<&crate::game::OwnedBy, With<crate::space::Ship>>,
+) {
+    if game_screen.current_screen == CURRENT_SCREEN {
+        let normal_time = 0.1;
+        let all_moon_time = 15.;
+        let damage_points = 1.;
+        let moon_points = 10.;
+        let planet_points = 100.;
+        game.score += if game.neutral_moons == 0 {
+            all_moon_time * time.delta_seconds()
+        } else {
+            normal_time * time.delta_seconds()
+        };
+        for event in event_reader.iter(&events) {
+            game.score += match event {
+                GameEvents::ShipDamaged(entity, damage) => {
+                    if let Ok(OwnedBy::Neutral) = ship_owner.get(*entity) {
+                        if *damage > 100 {
+                            0.
+                        } else {
+                            *damage as f32 * damage_points
+                        }
+                    } else {
+                        0.
+                    }
+                }
+                GameEvents::MoonConquered(_, owned_by) => {
+                    if let OwnedBy::Player(0) = owned_by {
+                        moon_points
+                    } else {
+                        0.
+                    }
+                }
+                GameEvents::PlanetConquered(_) => planet_points,
+                _ => 0.,
+            };
         }
     }
 }

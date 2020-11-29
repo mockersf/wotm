@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use tracing::info;
 
-const CURRENT_SCREEN: crate::Screen = crate::Screen::Lost;
+const CURRENT_SCREEN: crate::Screen = crate::Screen::End;
 
 struct ScreenTag;
 
@@ -25,7 +25,6 @@ impl bevy::app::Plugin for Plugin {
             .add_system(input_system)
             .add_system(setup)
             .add_system(update_stats)
-            .add_system(hurt_animate_sprite_system)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
@@ -62,13 +61,7 @@ fn setup(
         commands
             .spawn(NodeBundle {
                 style: Style {
-                    position_type: PositionType::Absolute,
-                    position: Rect::<Val> {
-                        left: Val::Percent(50.),
-                        right: Val::Undefined,
-                        top: Val::Percent(25.),
-                        bottom: Val::Undefined,
-                    },
+                    margin: Rect::all(Val::Auto),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     flex_direction: FlexDirection::ColumnReverse,
@@ -82,17 +75,40 @@ fn setup(
                 parent.spawn(TextBundle {
                     style: Style {
                         size: Size {
-                            height: Val::Px(75.),
+                            height: Val::Px(130.),
                             ..Default::default()
                         },
                         ..Default::default()
                     },
                     text: Text {
-                        value: "You lost".to_string(),
+                        value: match game.state {
+                            crate::game::GameState::Win => "You won".to_string(),
+                            crate::game::GameState::Lose => "You lost".to_string(),
+                            _ => "...".to_string(),
+                        },
+                        font: font.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT,
+                            font_size: 130.,
+                            ..Default::default()
+                        },
+                    },
+                    ..Default::default()
+                });
+                parent.spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(60.),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: format!("final score: {}", game.score as u32),
                         font,
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT,
-                            font_size: 75.,
+                            font_size: 60.,
                             ..Default::default()
                         },
                     },
@@ -136,22 +152,5 @@ fn input_system(
             || keyboard_input.just_released(KeyCode::Space))
     {
         game_screen.current_screen = crate::Screen::Menu;
-    }
-}
-
-fn hurt_animate_sprite_system(
-    game_screen: Res<crate::GameScreen>,
-    mut query: Query<(&mut Timer, &mut TextureAtlasSprite)>,
-) {
-    if game_screen.current_screen == CURRENT_SCREEN {
-        for (timer, mut sprite) in query.iter_mut() {
-            if timer.finished() {
-                if sprite.index == 0 {
-                    sprite.index = 4;
-                } else {
-                    sprite.index = 0
-                }
-            }
-        }
     }
 }

@@ -472,6 +472,7 @@ pub fn ship_collision(
 pub fn game_events(
     commands: &mut Commands,
     mut game_screen: ResMut<crate::GameScreen>,
+    mut game: ResMut<crate::game::Game>,
     (mut event_reader, events): (
         Local<EventReader<crate::game::GameEvents>>,
         Res<Events<crate::game::GameEvents>>,
@@ -543,7 +544,8 @@ pub fn game_events(
                 commands.push_children(*entity, &[shield]);
             }
             crate::game::GameEvents::PlanetConquered(_) => {
-                game_screen.current_screen = crate::Screen::Win;
+                game.state = crate::game::GameState::Win;
+                game_screen.current_screen = crate::Screen::End;
             }
         }
     }

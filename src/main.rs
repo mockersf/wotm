@@ -9,12 +9,11 @@ pub mod ui;
 use assets::AssetHandles;
 
 mod about;
+mod end;
 mod game;
-mod lost;
 mod menu;
 mod space;
 mod splash;
-mod win;
 
 pub const Z_PLANET: f32 = 0.0;
 pub const Z_MOON: f32 = 1.0;
@@ -153,9 +152,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugin(crate::menu::Plugin)
         .add_plugin(crate::about::Plugin)
         .add_plugin(crate::game::Plugin)
-        .add_plugin(crate::lost::Plugin)
         .add_plugin(crate::space::Plugin)
-        .add_plugin(crate::win::Plugin)
+        .add_plugin(crate::end::Plugin)
         .run();
 
     Ok(())
@@ -172,8 +170,7 @@ pub enum Screen {
     About,
     Game,
     Exit,
-    Lost,
-    Win,
+    End,
 }
 
 #[derive(Debug)]

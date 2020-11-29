@@ -6,6 +6,7 @@ use super::*;
 pub struct UiSelected;
 pub struct UiHighlighted;
 pub struct UiTime;
+pub struct UiScore;
 
 pub struct UiGameInteractionBlock;
 
@@ -52,6 +53,36 @@ pub fn setup(
                 ..Default::default()
             })
             .with(UiTime)
+            .with(ScreenTag);
+
+        commands
+            .spawn(TextBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: Rect {
+                        left: Val::Px(10.),
+                        top: Val::Px(50.),
+                        ..Default::default()
+                    },
+                    size: Size {
+                        height: Val::Px(30.),
+                        ..Default::default()
+                    },
+                    align_self: AlignSelf::Center,
+                    ..Default::default()
+                },
+                text: Text {
+                    font: font.clone(),
+                    style: TextStyle {
+                        color: crate::ui::ColorScheme::TEXT_DARK,
+                        font_size: 30.,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .with(UiScore)
             .with(ScreenTag);
 
         let inner_content = commands
@@ -145,6 +176,12 @@ pub fn timer(game: Res<Game>, mut timer: Query<&mut Text, With<UiTime>>) {
         let m = secs / 60;
         let secs = secs % 60;
         timer.value = format!("{:02}:{:02}.{}", m, secs, ms);
+    }
+}
+
+pub fn scorer(game: Res<Game>, mut scorer: Query<&mut Text, With<UiScore>>) {
+    for mut scorer in scorer.iter_mut() {
+        scorer.value = format!("score: {}", game.score as i32);
     }
 }
 
