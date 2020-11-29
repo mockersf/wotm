@@ -535,7 +535,7 @@ fn self_destruct(
     for (entity, mut to_destroy) in to_destroys.iter_mut() {
         to_destroy.0.tick(time.delta_seconds());
         if to_destroy.0.just_finished() {
-            game_events.send(GameEvents::ShipDamaged(entity, 1));
+            game_events.send(GameEvents::ShipDamaged(entity, 500));
         }
     }
 }
