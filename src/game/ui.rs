@@ -299,6 +299,22 @@ pub fn focus_system(
     state.hovered_entity = hovered_entity;
 }
 
+pub fn change_owner_interacted(
+    game: Res<Game>,
+    mut events: ResMut<Events<InteractionEvent>>,
+    moons: Query<Entity, (With<Moon>, Changed<OwnedBy>)>,
+) {
+    for moon in moons.iter() {
+        if game.selected == Some(moon) {
+            events.send(InteractionEvent::Clicked(None));
+            events.send(InteractionEvent::Clicked(Some(moon)));
+        }
+        if game.targeted == Some(moon) {
+            events.send(InteractionEvent::Hovered(None));
+            events.send(InteractionEvent::Hovered(Some(moon)));
+        }
+    }
+}
 pub fn interaction(
     commands: &mut Commands,
     mut game: ResMut<Game>,

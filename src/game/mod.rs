@@ -47,6 +47,7 @@ impl bevy::app::Plugin for Plugin {
             .add_system(asteroid)
             .add_system(moon_attack)
             .add_system(self_destruct)
+            .add_system_to_stage(crate::custom_stage::TEAR_DOWN, ui::change_owner_interacted)
             .add_system_to_stage(crate::custom_stage::TEAR_DOWN, tear_down);
     }
 }
