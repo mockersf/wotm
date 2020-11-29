@@ -945,7 +945,7 @@ pub fn orders(
                 commands.insert_one(
                     entity,
                     crate::space::MoveTowards {
-                        speed: 2000.,
+                        speed: 2500.,
                         from: selected,
                         towards: targeted,
                     },
