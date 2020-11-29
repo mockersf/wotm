@@ -389,7 +389,7 @@ fn move_towards(
 
         if let Ok((spawn, moon_owned_by)) = target_spawn.get(towards.towards) {
             if origin.translation.distance(target.translation)
-                < spawn.scale * SHIP_ORBITING_DISTANCE
+                < spawn.scale * SHIP_ORBITING_DISTANCE * 1.5
             {
                 commands.remove_one::<MoveTowards>(moving);
                 commands.insert_one(
