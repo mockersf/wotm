@@ -10,7 +10,8 @@ publish = false
 
 [dependencies]
 # bevy = "0.2"
-bevy = { git = "https://github.com/bevyengine/bevy", default-features = false }
+# bevy = { git = "https://github.com/bevyengine/bevy", default-features = false }
+bevy = { git = "https://github.com/mockersf/bevy", branch = "logical", default-features = false }
 
 [build-dependencies]
 ring = "0.16"
