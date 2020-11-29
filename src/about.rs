@@ -65,7 +65,7 @@ fn setup(
                 title_parent.spawn(TextBundle {
                     style: Style {
                         size: Size {
-                            height: Val::Px(150. / 2.),
+                            height: Val::Px(75.0),
                             ..Default::default()
                         },
                         ..Default::default()
@@ -75,7 +75,7 @@ fn setup(
                         font,
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT,
-                            font_size: 150.0 / 2.,
+                            font_size: 75.0,
                             ..Default::default()
                         },
                     },
@@ -84,11 +84,11 @@ fn setup(
                 title_parent.spawn(TextBundle {
                     style: Style {
                         size: Size {
-                            height: Val::Px(40. / 2.),
+                            height: Val::Px(20.0),
                             ..Default::default()
                         },
                         margin: Rect {
-                            right: Val::Px(20. / 2.),
+                            right: Val::Px(10.0),
                             ..Default::default()
                         },
                         align_self: AlignSelf::FlexEnd,
@@ -99,7 +99,7 @@ fn setup(
                         font: font_sub.clone(),
                         style: TextStyle {
                             color: crate::ui::ColorScheme::TEXT_DIM,
-                            font_size: 40.0 / 2.,
+                            font_size: 20.0,
                             ..Default::default()
                         },
                     },
@@ -107,6 +107,252 @@ fn setup(
                 });
             })
             .with(ScreenTag);
+
+        commands
+            .spawn(NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    position: Rect::<Val> {
+                        left: Val::Percent(10.),
+                        right: Val::Undefined,
+                        bottom: Val::Undefined,
+                        top: Val::Percent(40.),
+                    },
+                    flex_direction: FlexDirection::ColumnReverse,
+                    ..Default::default()
+                },
+                material: color_none.clone(),
+                ..Default::default()
+            })
+            .with(ScreenTag)
+            .with_children(|instruction_parent| {
+                instruction_parent.spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(35.0),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: "Lead the revolution! Free other moons and satellites! Take control of the planet!".to_string(),
+                        font: font_sub.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT,
+                            font_size: 35.0,
+                            ..Default::default()
+                        },
+                    },
+                    ..Default::default()
+                });
+                instruction_parent.spawn(TextBundle {
+                    style: Style {
+                        size: Size {
+                            height: Val::Px(35.0),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    text: Text {
+                        value: "But beware, the planet will fight back...".to_string(),
+                        font: font_sub.clone(),
+                        style: TextStyle {
+                            color: crate::ui::ColorScheme::TEXT,
+                            font_size: 35.0,
+                            ..Default::default()
+                        },
+                    },
+                    ..Default::default()
+                });
+                instruction_parent
+                    .spawn(NodeBundle {
+                        style: Style {
+                            position: Rect::<Val> {
+                                left: Val::Px(25.0),
+                                right: Val::Undefined,
+                                bottom: Val::Undefined,
+                                top: Val::Px(5.0),
+                            },
+                            flex_direction: FlexDirection::ColumnReverse,
+                            ..Default::default()
+                        },
+                        material: color_none.clone(),
+                        ..Default::default()
+                    })
+                    .with_children(|controls_parent| {
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "You start with one moon / satellite".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "Select a moon with a left mouse click. Your moons will have a blue circle when selected".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "Send ships from a satellite you control to any other with a right clic".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "Control the number of ships you send by clicking on the same moon, or on the green / shadow square".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "If only your ships orbit a moon, you have freed it and it will help you".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "Send a ship to the planet to win, but it will destroy all your ships if there are still occupied moons".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "Once you freed all moons, the planet will trigger its shield".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "The planet will send enormous fleet of ships to all moons, but they are mostly rubbish...".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                        controls_parent.spawn(TextBundle {
+                            style: Style {
+                                size: Size {
+                                    height: Val::Px(30.0),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            text: Text {
+                                value: "Watch out for the asteroids!".to_string(),
+                                font: font_sub.clone(),
+                                style: TextStyle {
+                                    color: crate::ui::ColorScheme::TEXT,
+                                    font_size: 25.0,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        });
+                    });
+            });
 
         screen.loaded = true;
     }
