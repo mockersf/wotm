@@ -452,12 +452,12 @@ pub fn ship_collision(
                         if owner1 != owner2 {
                             game_events.send(crate::game::GameEvents::ShipDamaged(
                                 entity1,
-                                1.min(ship2.hit_points),
+                                ship2.hit_points,
                             ));
                             removed.insert(entity1);
                             game_events.send(crate::game::GameEvents::ShipDamaged(
                                 entity2,
-                                1.min(ship1.hit_points),
+                                ship1.hit_points,
                             ));
                             removed.insert(entity2);
                         }
