@@ -470,7 +470,7 @@ dependencies = [
 [[package]]
 name = "bevy_rapier2d"
 version = "0.5.0"
-source = "git+https://github.com/vleue/bevy_rapier#6f54cdefdc7521e244010da4361f720ff3e8acc5"
+source = "git+https://github.com/vleue/bevy_rapier#35cdcb849856f0cca06a5772e24f7f0c578e9534"
 dependencies = [
  "bevy",
  "concurrent-queue",
