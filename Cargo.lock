@@ -296,7 +296,7 @@ dependencies = [
 [[package]]
 name = "bevy_diagnostic_counter"
 version = "0.1.0"
-source = "git+https://github.com/mockersf/bevy_extra#1b0bf468e47f5e057fa7bfcc6cfe948d48cf2465"
+source = "git+https://github.com/mockersf/bevy_extra#cc65891483ef5a0ecb1c32de11b1a827f42f29db"
 dependencies = [
  "bevy",
 ]
@@ -304,7 +304,7 @@ dependencies = [
 [[package]]
 name = "bevy_easings"
 version = "0.2.0"
-source = "git+https://github.com/mockersf/bevy_extra#1b0bf468e47f5e057fa7bfcc6cfe948d48cf2465"
+source = "git+https://github.com/mockersf/bevy_extra#cc65891483ef5a0ecb1c32de11b1a827f42f29db"
 dependencies = [
  "bevy",
  "interpolation",
@@ -418,7 +418,7 @@ dependencies = [
 [[package]]
 name = "bevy_log_diagnostic"
 version = "0.2.0"
-source = "git+https://github.com/mockersf/bevy_extra#1b0bf468e47f5e057fa7bfcc6cfe948d48cf2465"
+source = "git+https://github.com/mockersf/bevy_extra#cc65891483ef5a0ecb1c32de11b1a827f42f29db"
 dependencies = [
  "bevy",
  "tracing",
@@ -436,7 +436,7 @@ dependencies = [
 [[package]]
 name = "bevy_ninepatch"
 version = "0.3.0"
-source = "git+https://github.com/mockersf/bevy_extra#1b0bf468e47f5e057fa7bfcc6cfe948d48cf2465"
+source = "git+https://github.com/mockersf/bevy_extra#cc65891483ef5a0ecb1c32de11b1a827f42f29db"
 dependencies = [
  "bevy",
 ]
